@@ -68,50 +68,53 @@ moves_t Piece::getAllPossibleMoves(const Board &board) const
               << " King: " << (isKing ? "Yes" : "No")
               << std::endl;
 
-    // Check diagonal moves based on piece color and king status
-    if (isWhite || isKing)
-    { // White pieces and kings can move up
-        // Check up-left
-        int newX = this->x - 1;
-        int newY = this->y - 1;
-        if (!board.isOverEdge(newX, newY) && board.getValueAt(newX, newY) == nullptr)
-        {
-            moves.push_back(move_ptr_t(new Move(this->x, this->y, newX, newY, nullptr, false)));
-            std::cout << "Found possible move to (" << newX << "," << newY << ")" << std::endl;
-        }
+    // change y endpoints based on kingness and color=direction of movement
+    int startingY, yIncrement;
+    if (isWhite)
+    {
+        // if it's white, we move from further down the board backwards to possible king position
+        startingY = this->y + 1;
+        yIncrement = -2;
+    }
+    else
+    {
+        // if it's black, we move from further up the board forward to possible king position
+        startingY = this->y - 1;
+        yIncrement = 2;
+    }
 
-        // Check up-right
-        newX = this->x + 1;
-        newY = this->y - 1;
-        if (!board.isOverEdge(newX, newY) && board.getValueAt(newX, newY) == nullptr)
+    // use kingess to determine number of rows to check
+    int rowsToCheck = 1; // default as non-king
+    if (this->isKing)
+        rowsToCheck = 2;
+
+    // iterate over the four spaces where normal (non-jumping) moves are possible
+    for (int x = this->x - 1; x <= this->x + 1; x += 2)
+    {
+        // go over the rows (or row) (we iterate the number of times determined by the kingess above)
+        int y = startingY - yIncrement; // add this so we can add the normal increment before the boundary checks
+        for (int i = 0; i < rowsToCheck; i++)
         {
-            moves.push_back(move_ptr_t(new Move(this->x, this->y, newX, newY, nullptr, false)));
-            std::cout << "Found possible move to (" << newX << "," << newY << ")" << std::endl;
+            // increment y if we need to (this will have no effect if we only run one iteration)
+            y += yIncrement;
+
+            // check for going off end of board, in which case just skip this iteration (we may do this twice if at a corner)
+            if (board.isOverEdge(x, y))
+                continue;
+
+            // add a move here if there's not a piece
+            if (board.getValueAt(x, y) == nullptr)
+            {
+                // this is not jump move in any case, and is always the first move
+                move_ptr_t move(new Move(this->x, this->y, x, y, nullptr, false));
+                moves.push_back(move);
+
+                std::cout << "Found possible move to (" << x << "," << y << ")" << std::endl;
+            }
         }
     }
 
-    if (!isWhite || isKing)
-    { // Black pieces and kings can move down
-        // Check down-left
-        int newX = this->x - 1;
-        int newY = this->y + 1;
-        if (!board.isOverEdge(newX, newY) && board.getValueAt(newX, newY) == nullptr)
-        {
-            moves.push_back(move_ptr_t(new Move(this->x, this->y, newX, newY, nullptr, false)));
-            std::cout << "Found possible move to (" << newX << "," << newY << ")" << std::endl;
-        }
-
-        // Check down-right
-        newX = this->x + 1;
-        newY = this->y + 1;
-        if (!board.isOverEdge(newX, newY) && board.getValueAt(newX, newY) == nullptr)
-        {
-            moves.push_back(move_ptr_t(new Move(this->x, this->y, newX, newY, nullptr, false)));
-            std::cout << "Found possible move to (" << newX << "," << newY << ")" << std::endl;
-        }
-    }
-
-    // After we've checked all normal moves, look for and add all possible jumps
+    // after we've checked all normal moves, look for and add all possible jumps (recusively as well - I mean ALL jumps)
     moves_t possibleJumps = this->getAllPossibleJumps(board, nullptr);
     moves.insert(moves.end(), possibleJumps.begin(), possibleJumps.end());
 

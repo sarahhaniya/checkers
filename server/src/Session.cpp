@@ -126,10 +126,28 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
             std::cout << "  -> (" << endPos[0] << "," << endPos[1] << ")" << std::endl;
         }
 
+        // After calculating possibleMoves, add this code:
+
+        // Check if any jumps are available
+        bool jumpAvailable = false;
+        for (auto &move : possibleMoves)
+        {
+            // We need to determine if the move is a jump
+            std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
+            if (!jumpedPieces.empty())
+            {
+                jumpAvailable = true;
+                std::cout << "Jump available from (" << fromX << "," << fromY
+                          << ") to (" << move->getEndingPosition()[0] << ","
+                          << move->getEndingPosition()[1] << ")" << std::endl;
+            }
+        }
+
         // Find if the requested move is valid
         std::cout << "Checking if requested move matches a possible move..." << std::endl;
         bool moveFound = false;
         move_ptr_t validMove;
+        bool isJumpMove = false;
 
         for (auto &move : possibleMoves)
         {
@@ -139,6 +157,10 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
             {
                 validMove = move;
                 moveFound = true;
+
+                // Check if this move is a jump
+                std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
+                isJumpMove = !jumpedPieces.empty();
                 break;
             }
         }
@@ -148,6 +170,14 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
             std::cout << "Move to (" << toX << "," << toY << ") not found in possible moves" << std::endl;
             logMutexRelease("makeMove - invalid move");
             return false; // Move not found in possible moves
+        }
+
+        // If jumps are available but the selected move is not a jump, reject it
+        if (jumpAvailable && !isJumpMove)
+        {
+            std::cout << "Jump is available, must take jump move" << std::endl;
+            logMutexRelease("makeMove - jump required");
+            return false;
         }
 
         // Apply the move
