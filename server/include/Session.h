@@ -44,9 +44,10 @@ public:
     bool hasStarted() const { return gameStarted; }
 
     bool forceBlackMove(int fromX, int fromY, int toX, int toY);
-    // Add this to the public section of GameSession class
     const std::string &getPlayer2Id() const { return player2Id; }
     bool playerHasJumps(bool isWhiteTurn);
+
+    const Board &getGameBoard() const { return gameBoard; }
 };
 
 #endif // SESSION_H

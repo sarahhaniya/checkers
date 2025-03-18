@@ -59,6 +59,37 @@ bool GameSession::joinGame(const std::string &p2Id)
 
     return true;
 }
+
+bool GameSession::playerHasJumps(bool isWhiteTurn)
+{
+    // Loop through all board positions
+    for (int y = 0; y < Board::SIZE; y++)
+    {
+        for (int x = 0; x < Board::SIZE; x++)
+        {
+            Piece *pieceAtPos = gameBoard.getValueAt(x, y);
+            // If there's a piece and it belongs to the current player
+            if (pieceAtPos && pieceAtPos->isWhite == isWhiteTurn)
+            {
+                // Get all possible moves
+                moves_t pieceMoves = pieceAtPos->getAllPossibleMoves(gameBoard);
+                for (auto &move : pieceMoves)
+                {
+                    // Check if any move is a jump
+                    std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
+                    if (!jumpedPieces.empty())
+                    {
+                        std::cout << "Jump available for " << (isWhiteTurn ? "White" : "Black")
+                                  << " piece at (" << x << "," << y << ")" << std::endl;
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
 bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, int toX, int toY)
 {
     logMutexAcquire("makeMove");
@@ -123,25 +154,73 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
         for (auto &move : possibleMoves)
         {
             coords_t endPos = move->getEndingPosition();
-            std::cout << "  -> (" << endPos[0] << "," << endPos[1] << ")" << std::endl;
+            std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
+            bool isJumpMove = !jumpedPieces.empty();
+            std::cout << "  -> (" << endPos[0] << "," << endPos[1] << ")"
+                      << (isJumpMove ? " [JUMP]" : "") << std::endl;
         }
 
-        // After calculating possibleMoves, add this code:
-
-        // Check if any jumps are available
-        bool jumpAvailable = false;
-        for (auto &move : possibleMoves)
+        // Add detailed debugging for ALL pieces with possible moves
+        std::cout << "\n===== DEBUGGING ALL POSSIBLE MOVES =====\n";
+        bool anyJumpAvailable = false;
+        // Loop through all board positions
+        for (int y = 0; y < Board::SIZE; y++)
         {
-            // We need to determine if the move is a jump
-            std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
-            if (!jumpedPieces.empty())
+            for (int x = 0; x < Board::SIZE; x++)
             {
-                jumpAvailable = true;
-                std::cout << "Jump available from (" << fromX << "," << fromY
-                          << ") to (" << move->getEndingPosition()[0] << ","
-                          << move->getEndingPosition()[1] << ")" << std::endl;
+                Piece *pieceAtPos = gameBoard.getValueAt(x, y);
+                // If there's a piece and it belongs to the current player
+                if (pieceAtPos && pieceAtPos->isWhite == isPlayer1)
+                {
+                    // Get all possible moves
+                    moves_t pieceMoves = pieceAtPos->getAllPossibleMoves(gameBoard);
+                    if (!pieceMoves.empty())
+                    {
+                        std::cout << "Generating moves for piece at (" << x << "," << y
+                                  << ") Color: " << (pieceAtPos->isWhite ? "White" : "Black")
+                                  << std::endl;
+
+                        bool hasJumps = false;
+                        // Display each move
+                        for (auto &m : pieceMoves)
+                        {
+                            coords_t endPos = m->getEndingPosition();
+                            std::vector<Piece *> jumpedPieces = m->getJumpedPieces(gameBoard);
+                            bool isJumpMove = !jumpedPieces.empty();
+                            if (isJumpMove)
+                            {
+                                hasJumps = true;
+                                anyJumpAvailable = true;
+                            }
+
+                            std::cout << "Found possible move to (" << endPos[0] << "," << endPos[1] << ")" << std::endl;
+                        }
+
+                        std::cout << "Total possible moves: " << pieceMoves.size() << std::endl;
+                        std::cout << "Piece at (" << x << "," << y
+                                  << ") Color: " << (pieceAtPos->isWhite ? "White" : "Black")
+                                  << " has " << pieceMoves.size() << " moves:" << std::endl;
+
+                        for (auto &m : pieceMoves)
+                        {
+                            coords_t endPos = m->getEndingPosition();
+                            std::vector<Piece *> jumpedPieces = m->getJumpedPieces(gameBoard);
+                            bool isJumpMove = !jumpedPieces.empty();
+
+                            std::cout << "  -> To (" << endPos[0] << "," << endPos[1] << ")"
+                                      << (isJumpMove ? " [JUMP]" : "") << std::endl;
+                        }
+
+                        if (hasJumps)
+                        {
+                            std::cout << "  ** This piece has jumps available! **" << std::endl;
+                        }
+                        std::cout << std::endl;
+                    }
+                }
             }
         }
+        std::cout << "====================================\n\n";
 
         // Find if the requested move is valid
         std::cout << "Checking if requested move matches a possible move..." << std::endl;
@@ -161,6 +240,13 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
                 // Check if this move is a jump
                 std::vector<Piece *> jumpedPieces = move->getJumpedPieces(gameBoard);
                 isJumpMove = !jumpedPieces.empty();
+
+                // If this is a jump, indicate it
+                if (isJumpMove)
+                {
+                    std::cout << "Jump available from (" << fromX << "," << fromY
+                              << ") to (" << toX << "," << toY << ")" << std::endl;
+                }
                 break;
             }
         }
@@ -172,8 +258,8 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
             return false; // Move not found in possible moves
         }
 
-        // If jumps are available but the selected move is not a jump, reject it
-        if (jumpAvailable && !isJumpMove)
+        // If ANY jump is available but the selected move is not a jump, reject it
+        if (anyJumpAvailable && !isJumpMove)
         {
             std::cout << "Jump is available, must take jump move" << std::endl;
             logMutexRelease("makeMove - jump required");
