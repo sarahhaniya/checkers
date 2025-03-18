@@ -3,6 +3,13 @@
 #include "Piece.h"
 #include "Move.h"
 #include "Typedefs.h"
+#include <iostream>
+
+/**
+ * Responsible for generating a brand new board
+ * Fills the board with pieces in their starting positions.
+ * Adds WHITE pieces at the top to start (so white should move first)
+ */
 
 /**
  * Responsible for generating a brand new board
@@ -11,11 +18,11 @@
  */
 Board::Board()
 {
-	// In this constructor, we dynamically allocate the pieces becasue
-	// we want to use pointers here (we want to move the references to a
-	// unique piece around the board array, instead of copying full objects
-	// around), but that means we must delete that memory later to avoid 
-	// memory leaks. (See the deconstructor below)
+    // In this constructor, we dynamically allocate the pieces becasue
+    // we want to use pointers here (we want to move the references to a
+    // unique piece around the board array, instead of copying full objects
+    // around), but that means we must delete that memory later to avoid
+    // memory leaks. (See the deconstructor below)
 
     for (int y = 0; y < SIZE; y++)
     {
@@ -25,17 +32,19 @@ Board::Board()
             if (y < 3 && isCheckerboardSpace(x, y))
             {
                 setValueAt(x, y, new Piece(x, y, true));
+                std::cout << "Added white piece at (" << x << "," << y << ")" << std::endl;
             }
             // ... and black pieces to the bottom in the opposite pattern
             else if (y >= SIZE - 3 && isCheckerboardSpace(x, y))
             {
-				setValueAt(x, y, new Piece(x, y, false));
+                setValueAt(x, y, new Piece(x, y, false));
+                std::cout << "Added black piece at (" << x << "," << y << ")" << std::endl;
             }
-            // AND ensure that all non-occupied spaces are null (we don't have 
+            // AND ensure that all non-occupied spaces are null (we don't have
             // a default constructor for Pieces, so the normal initilizations are weird here)
             else
             {
-            	setValueAt(x, y, nullptr);
+                setValueAt(x, y, nullptr);
             }
         }
     }
