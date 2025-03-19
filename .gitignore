@@ -1,0 +1,69 @@
+# Build directories
+build/
+bin/
+out/
+cmake-build-*/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+checkers_server
+checkers
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
+compile_commands.json
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.vs/
+*.user
+*.vcxproj
+*.vcxproj.filters
+*.suo
+*.sln
+xcuserdata/
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Log files
+*.log
+
+# Generated files
+test_server
