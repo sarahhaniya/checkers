@@ -1,0 +1,8 @@
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/checkers_server.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/checkers.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/edit_cache.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/rebuild_cache.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/list_install_components.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/install.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/install/local.dir
+/Users/sarah/Desktop/School/3313/checkers/server/build/CMakeFiles/install/strip.dir

@@ -1,5 +1,6 @@
 // server/test_server.cpp
 #include "include/Server.h"
+#include "include/SocketWrapper.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -8,7 +9,6 @@
 #include "GameLogic/Piece.h"
 #include "GameLogic/Move.h"
 #include "GameLogic/Typedefs.h"
-
 
 // Add this at the beginning of your main() function
 void testBlackPieceMoves()
@@ -62,7 +62,6 @@ void testBlackPieceMoves()
               << std::endl;
 }
 
-
 void debugBlackPiece()
 {
     std::cout << "\n--- BLACK PIECE DEBUG ---\n"
@@ -113,8 +112,12 @@ void debugBlackPiece()
     std::cout << "\n--- END BLACK PIECE DEBUG ---\n"
               << std::endl;
 }
+
 int main()
 {
+    // Initialize socket library (Windows needs this)
+    SocketWrapper::initialize();
+
     testBlackPieceMoves();
     // Kill any previous instances of the server
     killPreviousInstances();
@@ -126,6 +129,8 @@ int main()
     if (!server.start())
     {
         std::cerr << "Failed to start server" << std::endl;
+        // Clean up socket library before exiting
+        SocketWrapper::cleanup();
         return 1;
     }
 
@@ -150,5 +155,8 @@ int main()
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    // Clean up socket library before exiting (this code won't be reached normally,
+    // but it's good practice to include it)
+    SocketWrapper::cleanup();
     return 0;
 }

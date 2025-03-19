@@ -9,7 +9,7 @@
 #include "../GameLogic/Board.h"
 #include "../GameLogic/Move.h"
 #include "../GameLogic/Piece.h"
-
+#include "SocketWrapper.h"
 
 class GameSession
 {
@@ -17,13 +17,13 @@ private:
     int sessionId;
     std::string player1Id;
     std::string player2Id;
-    std::vector<int> clientSockets;
+    std::vector<socket_t> clientSockets; // Changed from int to socket_t
     bool gameStarted;
 
     Board gameBoard; // The checkers board
     std::atomic<bool> isPlayer1Turn;
     std::mutex gameMutex;
-    
+
     static int mutexOperationId;
     void logMutexAcquire(const std::string &methodName);
     void logMutexRelease(const std::string &methodName);
@@ -36,7 +36,7 @@ public:
     bool makeMove(const std::string &playerId, int fromX, int fromY, int toX, int toY);
     std::string getBoardState() const; // Return serialized board state
 
-    void addClientSocket(int socket);
+    void addClientSocket(socket_t socket); // Changed from int to socket_t
     void broadcastGameState();
 
     int getSessionId() const { return sessionId; }
@@ -48,6 +48,7 @@ public:
     bool playerHasJumps(bool isWhiteTurn);
 
     const Board &getGameBoard() const { return gameBoard; }
+    bool checkForWinner();
 };
 
 #endif // SESSION_H

@@ -8,7 +8,7 @@
 #include <mutex>
 #include <atomic>
 #include <unordered_map>
-#include <netinet/in.h>
+#include "SocketWrapper.h"
 
 // Declare the function before any class definitions
 void killPreviousInstances();
@@ -16,13 +16,11 @@ void killPreviousInstances();
 class GameSession;
 class ThreadPool;
 
-
-
 class Server
 {
 private:
     int port;
-    int serverSocket;
+    socket_t serverSocket; // Changed from int to socket_t
     std::atomic<bool> running;
     ThreadPool *threadPool;
 
@@ -46,10 +44,10 @@ public:
     bool joinGameSession(int sessionId, const std::string &player2Id);
     GameSession *getGameSession(int sessionId);
 
-    void handleClientConnection(int clientSocket);
+    void handleClientConnection(socket_t clientSocket); // Changed from int to socket_t
 
     // Utility method to safely close a socket
-    static void closeSocket(int socket);
+    static void closeSocket(socket_t socket); // Changed from int to socket_t
 
     int getPort() const { return port; }
 };

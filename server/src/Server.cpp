@@ -2,37 +2,41 @@
 #include "../include/Server.h"
 #include "../include/ThreadPool.h"
 #include "../include/Session.h"
+#include "../include/SocketWrapper.h"
 
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
+#include <thread>
+#include <chrono>
 
 void killPreviousInstances()
 {
-    // Get current process ID
+#ifdef _WIN32
+    // Windows implementation (using taskkill)
+    system("taskkill /F /IM test_server.exe /T 2>nul");
+    system("taskkill /F /IM checkers_server.exe /T 2>nul");
+#else
+    // Unix/Linux implementation
     pid_t currentPid = getpid();
 
-    // Command to kill previous instances but exclude the current process
     std::string cmd = "ps -ef | grep test_server | grep -v grep | grep -v " +
                       std::to_string(currentPid) +
                       " | awk '{print $2}' | xargs -I {} kill -9 {} 2>/dev/null";
 
     system(cmd.c_str());
-
+#endif
     // Give a moment for processes to terminate
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
 Server::Server(int port, int numThreads)
     : port(port),
-      serverSocket(-1),
+      serverSocket(SOCKET_ERROR_VALUE),
       running(false),
       nextSessionId(1)
 {
+    // Initialize socket library (Windows needs this)
+    SocketWrapper::initialize();
 
     // Create the thread pool
     threadPool = new ThreadPool(numThreads);
@@ -51,39 +55,36 @@ Server::~Server()
 
     // Clean up thread pool
     delete threadPool;
+
+    // Cleanup socket library (Windows needs this)
+    SocketWrapper::cleanup();
 }
 
 bool Server::start()
 {
     // Create socket
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket < 0)
+    serverSocket = SocketWrapper::createSocket();
+    if (serverSocket == SOCKET_ERROR_VALUE)
     {
-        std::cerr << "Failed to create socket: " << strerror(errno) << std::endl;
+        std::cerr << "Failed to create socket: " << SocketWrapper::getLastError() << std::endl;
         return false;
     }
 
     // Set socket options
-    int opt = 1;
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    if (!SocketWrapper::setReuseAddr(serverSocket))
     {
-        std::cerr << "Failed to set socket options: " << strerror(errno) << std::endl;
-        closeSocket(serverSocket);
+        std::cerr << "Failed to set socket options: " << SocketWrapper::getLastError() << std::endl;
+        SocketWrapper::closeSocket(serverSocket);
         return false;
     }
 
     // Try to bind to the initial port, and if that fails, try subsequent ports
     const int MAX_PORT_ATTEMPTS = 10;
-    struct sockaddr_in address;
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-
     bool bound = false;
+
     for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++)
     {
-        address.sin_port = htons(port + attempt);
-
-        if (bind(serverSocket, (struct sockaddr *)&address, sizeof(address)) == 0)
+        if (SocketWrapper::bindSocket(serverSocket, port + attempt))
         {
             // Successfully bound to a port
             port = port + attempt; // Update the port to the one we actually bound to
@@ -92,21 +93,21 @@ bool Server::start()
         }
 
         std::cerr << "Failed to bind to port " << (port + attempt)
-                  << ": " << strerror(errno) << std::endl;
+                  << ": " << SocketWrapper::getLastError() << std::endl;
     }
 
     if (!bound)
     {
         std::cerr << "Failed to bind to any port after " << MAX_PORT_ATTEMPTS << " attempts" << std::endl;
-        closeSocket(serverSocket);
+        SocketWrapper::closeSocket(serverSocket);
         return false;
     }
 
     // Listen for connections
-    if (listen(serverSocket, 10) < 0)
+    if (!SocketWrapper::listenSocket(serverSocket, 10))
     {
-        std::cerr << "Failed to listen: " << strerror(errno) << std::endl;
-        closeSocket(serverSocket);
+        std::cerr << "Failed to listen: " << SocketWrapper::getLastError() << std::endl;
+        SocketWrapper::closeSocket(serverSocket);
         return false;
     }
 
@@ -119,16 +120,17 @@ bool Server::start()
     std::cout << "Server started on port " << port << std::endl;
     return true;
 }
+
 void Server::stop()
 {
     // Stop accepting new connections
     running = false;
 
     // Close server socket
-    if (serverSocket >= 0)
+    if (serverSocket != SOCKET_ERROR_VALUE)
     {
-        closeSocket(serverSocket);
-        serverSocket = -1;
+        SocketWrapper::closeSocket(serverSocket);
+        serverSocket = SOCKET_ERROR_VALUE;
     }
 
     // Join accept thread
@@ -156,9 +158,9 @@ void Server::acceptConnections()
     while (running)
     {
         // Accept a connection
-        int clientSocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientAddressLength);
+        socket_t clientSocket = SocketWrapper::acceptConnection(serverSocket, &clientAddress, &clientAddressLength);
 
-        if (clientSocket < 0)
+        if (clientSocket == SOCKET_ERROR_VALUE)
         {
             // Check if the error is because we're shutting down
             if (!running)
@@ -166,7 +168,7 @@ void Server::acceptConnections()
                 break;
             }
 
-            std::cerr << "Failed to accept connection: " << strerror(errno) << std::endl;
+            std::cerr << "Failed to accept connection: " << SocketWrapper::getLastError() << std::endl;
             continue;
         }
 
@@ -180,7 +182,7 @@ void Server::acceptConnections()
     }
 }
 
-void Server::handleClientConnection(int clientSocket)
+void Server::handleClientConnection(socket_t clientSocket)
 {
     const int bufferSize = 1024;
     char buffer[bufferSize];
@@ -191,14 +193,14 @@ void Server::handleClientConnection(int clientSocket)
     {
         // Send welcome message
         std::string welcome = "Welcome to Checkers Server\n";
-        send(clientSocket, welcome.c_str(), welcome.length(), 0);
+        SocketWrapper::sendData(clientSocket, welcome.c_str(), welcome.length());
 
         while (running)
         {
             try
             {
                 // Read data from client
-                ssize_t bytesRead = recv(clientSocket, buffer, bufferSize - 1, 0);
+                ssize_t bytesRead = SocketWrapper::receiveData(clientSocket, buffer, bufferSize - 1);
 
                 if (bytesRead <= 0)
                 {
@@ -230,7 +232,7 @@ void Server::handleClientConnection(int clientSocket)
                         {
                             clientId = message.substr(pos + 1);
                             std::string response = "Logged in as " + clientId + "\n";
-                            send(clientSocket, response.c_str(), response.length(), 0);
+                            SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                         }
                     }
                     else if (upperMessage.find("CREATE") == 0)
@@ -248,12 +250,12 @@ void Server::handleClientConnection(int clientSocket)
                             }
 
                             std::string response = "Game created with ID: " + std::to_string(gameSessionId) + "\n";
-                            send(clientSocket, response.c_str(), response.length(), 0);
+                            SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                         }
                         else
                         {
                             std::string response = "Please login first with LOGIN username\n";
-                            send(clientSocket, response.c_str(), response.length(), 0);
+                            SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                         }
                     }
                     else if (upperMessage.find("JOIN") == 0)
@@ -276,12 +278,12 @@ void Server::handleClientConnection(int clientSocket)
                                 }
 
                                 std::string response = "Joined game with ID: " + std::to_string(gameSessionId) + "\n";
-                                send(clientSocket, response.c_str(), response.length(), 0);
+                                SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                             }
                             else
                             {
                                 std::string response = "Failed to join game\n";
-                                send(clientSocket, response.c_str(), response.length(), 0);
+                                SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                             }
                         }
                     }
@@ -306,25 +308,25 @@ void Server::handleClientConnection(int clientSocket)
                                     if (!moveResult)
                                     {
                                         std::string response = "Invalid move\n";
-                                        send(clientSocket, response.c_str(), response.length(), 0);
+                                        SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                                     }
                                 }
                                 else
                                 {
                                     std::string response = "Game session not found\n";
-                                    send(clientSocket, response.c_str(), response.length(), 0);
+                                    SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                                 }
                             }
                             else
                             {
                                 std::string response = "Invalid move format. Use: MOVE fromX fromY toX toY\n";
-                                send(clientSocket, response.c_str(), response.length(), 0);
+                                SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                             }
                         }
                         else
                         {
                             std::string response = "You are not in a game\n";
-                            send(clientSocket, response.c_str(), response.length(), 0);
+                            SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                         }
                     }
                     else if (upperMessage.find("STATE") == 0)
@@ -336,13 +338,13 @@ void Server::handleClientConnection(int clientSocket)
                             if (session)
                             {
                                 std::string state = session->getBoardState() + "\n";
-                                send(clientSocket, state.c_str(), state.length(), 0);
+                                SocketWrapper::sendData(clientSocket, state.c_str(), state.length());
                             }
                         }
                         else
                         {
                             std::string response = "You are not in a game\n";
-                            send(clientSocket, response.c_str(), response.length(), 0);
+                            SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                         }
                     }
                     else if (upperMessage.find("HELP") == 0)
@@ -355,26 +357,26 @@ void Server::handleClientConnection(int clientSocket)
                         response += "MOVE fromX fromY toX toY - Make a move\n";
                         response += "STATE - Get the current game state\n";
                         response += "HELP - Show this help message\n";
-                        send(clientSocket, response.c_str(), response.length(), 0);
+                        SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                     }
                     else
                     {
                         // Unknown command
                         std::string response = "Unknown command. Type HELP for available commands.\n";
-                        send(clientSocket, response.c_str(), response.length(), 0);
+                        SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                     }
                 }
                 catch (const std::exception &e)
                 {
                     std::cerr << "Exception processing command: " << e.what() << std::endl;
                     std::string response = "Server error processing command\n";
-                    send(clientSocket, response.c_str(), response.length(), 0);
+                    SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                 }
                 catch (...)
                 {
                     std::cerr << "Unknown exception processing command" << std::endl;
                     std::string response = "Server error processing command\n";
-                    send(clientSocket, response.c_str(), response.length(), 0);
+                    SocketWrapper::sendData(clientSocket, response.c_str(), response.length());
                 }
             }
             catch (const std::exception &e)
@@ -397,10 +399,9 @@ void Server::handleClientConnection(int clientSocket)
     }
 
     // Close the client socket
-    closeSocket(clientSocket);
+    SocketWrapper::closeSocket(clientSocket);
     std::cout << "Client disconnected: " << clientId << std::endl;
 }
-
 
 int Server::createGameSession(const std::string &player1Id)
 {
@@ -445,8 +446,7 @@ GameSession *Server::getGameSession(int sessionId)
     return it->second;
 }
 
-
-void Server::closeSocket(int socket)
+void Server::closeSocket(socket_t socket)
 {
-    close(socket);
+    SocketWrapper::closeSocket(socket);
 }

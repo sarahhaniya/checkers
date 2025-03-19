@@ -1,8 +1,7 @@
 // server/src/Session.cpp - update with board handling
 #include "../include/Session.h"
+#include "../include/SocketWrapper.h"
 #include <iostream>
-#include <unistd.h>
-#include <sys/socket.h>
 #include <sstream>
 
 GameSession::GameSession(int id, const std::string &p1Id)
@@ -12,7 +11,6 @@ GameSession::GameSession(int id, const std::string &p1Id)
       gameBoard(), // Initialize a new board
       isPlayer1Turn(true)
 {
-
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
 
@@ -33,9 +31,9 @@ void GameSession::logMutexRelease(const std::string &methodName)
 GameSession::~GameSession()
 {
     // Close all client sockets
-    for (int socket : clientSockets)
+    for (socket_t socket : clientSockets)
     {
-        close(socket);
+        SocketWrapper::closeSocket(socket);
     }
 
     std::cout << "Game session " << sessionId << " destroyed" << std::endl;
@@ -287,13 +285,16 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
         // End of mutex-protected section
 
         // Broadcast the game state - OUTSIDE the mutex lock
-        for (int socket : clientSockets)
+        for (socket_t socket : clientSockets)
         {
             std::string message = gameState + "\n";
-            send(socket, message.c_str(), message.length(), 0);
+            SocketWrapper::sendData(socket, message.c_str(), message.length());
         }
 
         std::cout << "Broadcast complete" << std::endl;
+
+        // Check if there's a winner
+        checkForWinner();
 
         return true;
     }
@@ -326,10 +327,10 @@ void GameSession::broadcastGameState()
     // End of mutex-protected section
 
     // Send to all connected clients - OUTSIDE the mutex lock
-    for (int socket : clientSockets)
+    for (socket_t socket : clientSockets)
     {
         std::string message = gameState + "\n";
-        send(socket, message.c_str(), message.length(), 0);
+        SocketWrapper::sendData(socket, message.c_str(), message.length());
     }
 
     std::cout << "Broadcast completed" << std::endl;
@@ -368,12 +369,15 @@ bool GameSession::forceBlackMove(int fromX, int fromY, int toX, int toY)
         try
         {
             std::string state = getBoardState();
-            for (int socket : clientSockets)
+            for (socket_t socket : clientSockets)
             {
                 std::string message = state + "\n";
-                send(socket, message.c_str(), message.length(), 0);
+                SocketWrapper::sendData(socket, message.c_str(), message.length());
             }
             std::cout << "Broadcast complete" << std::endl;
+
+            // Check if there's a winner
+            checkForWinner();
         }
         catch (const std::exception &e)
         {
@@ -442,8 +446,54 @@ std::string GameSession::getBoardState() const
     return ss.str();
 }
 
-void GameSession::addClientSocket(int socket)
+void GameSession::addClientSocket(socket_t socket)
 {
     std::lock_guard<std::mutex> lock(gameMutex);
     clientSockets.push_back(socket);
+}
+
+bool GameSession::checkForWinner()
+{
+    int whiteCount = 0;
+    int blackCount = 0;
+
+    // Count all pieces on the board
+    for (int y = 0; y < Board::SIZE; y++)
+    {
+        for (int x = 0; x < Board::SIZE; x++)
+        {
+            Piece *pieceAtPos = gameBoard.getValueAt(x, y);
+            if (pieceAtPos != nullptr)
+            {
+                if (pieceAtPos->isWhite)
+                    whiteCount++;
+                else
+                    blackCount++;
+            }
+        }
+    }
+
+    std::cout << "Piece count - White: " << whiteCount << ", Black: " << blackCount << std::endl;
+
+    // If either player has no pieces left, the other player wins
+    if (whiteCount == 0 || blackCount == 0)
+    {
+        std::string message;
+        if (whiteCount == 0)
+            message = "BLACK WINS! Player " + player2Id + " is victorious!\n";
+        else
+            message = "WHITE WINS! Player " + player1Id + " is victorious!\n";
+
+        std::cout << message;
+
+        // Broadcast the win message to all clients
+        for (socket_t socket : clientSockets)
+        {
+            SocketWrapper::sendData(socket, message.c_str(), message.length());
+        }
+
+        return true;
+    }
+
+    return false;
 }
