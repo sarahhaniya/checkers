@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
 
@@ -10,15 +10,30 @@ function App() {
     updateFromServer,
   } = useGameState();
 
-  const sendMessage = useWebSocket(updateFromServer);
+  const memoizedUpdateFromServer = useCallback(updateFromServer, []);
+  const sendMessage = useWebSocket(memoizedUpdateFromServer);
 
-  const [username, setUsername] = useState("");
-  const [gameToJoin, setGameToJoin] = useState("");
+  const [view, setView] = useState("login"); // 'login' or 'register'
+
+  // Login state
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  // Register state
+  const [regEmail, setRegEmail] = useState("");
+  const [regUsername, setRegUsername] = useState("");
+  const [regPassword, setRegPassword] = useState("");
 
   const handleLogin = () => {
-    if (username.trim()) {
-      sendMessage(`login ${username}`);
-      setPlayer(username);
+    if (loginUsername && loginPassword) {
+      sendMessage(`login ${loginUsername} ${loginPassword}`);
+      setPlayer(loginUsername);
+    }
+  };
+
+  const handleRegister = () => {
+    if (regEmail && regUsername && regPassword) {
+      sendMessage(`register ${regEmail} ${regUsername} ${regPassword}`);
     }
   };
 
@@ -26,28 +41,72 @@ function App() {
     sendMessage("create");
   };
 
-  const handleJoinGame = () => {
-    if (gameToJoin.trim()) {
-      sendMessage(`join ${gameToJoin}`);
-      setGameId(gameToJoin);
-    }
+  const handleJoinGame = (id) => {
+    sendMessage(`join ${id}`);
+    setGameId(id);
   };
 
   return (
     <div style={{ padding: "2rem", fontFamily: "Arial" }}>
       <h1>🕹️ Checkers Game</h1>
 
+      {/* TAB SWITCHER */}
       <div style={{ marginBottom: "1rem" }}>
-        <h2>Login</h2>
-        <input
-          type="text"
-          placeholder="Enter username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <button onClick={handleLogin}>Login</button>
+        <button onClick={() => setView("login")} disabled={view === "login"}>
+          Login
+        </button>
+        <button onClick={() => setView("register")} disabled={view === "register"}>
+          Create Account
+        </button>
       </div>
 
+      {/* LOGIN FORM */}
+      {view === "login" && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h2>Login</h2>
+          <input
+            type="text"
+            placeholder="Username"
+            value={loginUsername}
+            onChange={(e) => setLoginUsername(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={loginPassword}
+            onChange={(e) => setLoginPassword(e.target.value)}
+          />
+          <button onClick={handleLogin}>Login</button>
+        </div>
+      )}
+
+      {/* REGISTER FORM */}
+      {view === "register" && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h2>Create Account</h2>
+          <input
+            type="email"
+            placeholder="Email"
+            value={regEmail}
+            onChange={(e) => setRegEmail(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Username"
+            value={regUsername}
+            onChange={(e) => setRegUsername(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={regPassword}
+            onChange={(e) => setRegPassword(e.target.value)}
+          />
+          <button onClick={handleRegister}>Register</button>
+        </div>
+      )}
+
+      {/* GAME CREATION / JOINING */}
       <div style={{ marginBottom: "1rem" }}>
         <h2>Create Game</h2>
         <button onClick={handleCreateGame}>Create New Game</button>
@@ -58,25 +117,8 @@ function App() {
         <input
           type="text"
           placeholder="Enter Game ID"
-          value={gameToJoin}
-          onChange={(e) => setGameToJoin(e.target.value)}
+          onChange={(e) => handleJoinGame(e.target.value)}
         />
-        <button onClick={handleJoinGame}>Join Game</button>
-      </div>
-
-      <div>
-        <h2>Server Messages</h2>
-        <pre
-          style={{
-            background: "#f4f4f4",
-            padding: "1rem",
-            maxHeight: "300px",
-            overflowY: "auto",
-            border: "1px solid #ccc",
-          }}
-        >
-          {messages.join("\n")}
-        </pre>
       </div>
     </div>
   );
