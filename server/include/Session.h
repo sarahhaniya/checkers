@@ -10,6 +10,8 @@
 #include "../GameLogic/Move.h"
 #include "../GameLogic/Piece.h"
 #include "SocketWrapper.h"
+#include "../websocketpp/websocketpp/server.hpp"
+#include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
 
 class GameSession
 {
@@ -27,6 +29,9 @@ private:
     static int mutexOperationId;
     void logMutexAcquire(const std::string &methodName);
     void logMutexRelease(const std::string &methodName);
+
+    typedef websocketpp::server<websocketpp::config::asio> WebSocketServer;
+    std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>> wsConnections;
 
 public:
     GameSession(int id, const std::string &p1Id);
@@ -49,6 +54,28 @@ public:
 
     const Board &getGameBoard() const { return gameBoard; }
     bool checkForWinner();
+
+    // Add a method to add WebSocket handle
+    void addWebSocketHandle(websocketpp::connection_hdl hdl, WebSocketServer* server) {
+        wsConnections.push_back(std::make_pair(hdl, server));
+    }
+
+      // Add method to get JSON representation of board
+      std::string getBoardStateJson() {
+        std::stringstream ss;
+        ss << "[";
+        for (int y = 0; y < 8; y++) {
+            ss << "[";
+            for (int x = 0; x < 8; x++) {
+                ss << "\"" << gameBoard.getValueAt(x, y) << "\"";
+                if (x < 7) ss << ",";
+            }
+            ss << "]";
+            if (y < 7) ss << ",";
+        }
+        ss << "]";
+        return ss.str();
+    }
 };
 
 #endif // SESSION_H

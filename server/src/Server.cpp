@@ -62,63 +62,199 @@ Server::~Server()
 
 bool Server::start()
 {
-    // Create socket
-    serverSocket = SocketWrapper::createSocket();
-    if (serverSocket == SOCKET_ERROR_VALUE)
-    {
-        std::cerr << "Failed to create socket: " << SocketWrapper::getLastError() << std::endl;
-        return false;
+     // Create socket
+     serverSocket = SocketWrapper::createSocket();
+     if (serverSocket == SOCKET_ERROR_VALUE)
+     {
+         std::cerr << "Failed to create socket: " << SocketWrapper::getLastError() << std::endl;
+         return false;
+     }
+ 
+     // Set socket options
+     if (!SocketWrapper::setReuseAddr(serverSocket))
+     {
+         std::cerr << "Failed to set socket options: " << SocketWrapper::getLastError() << std::endl;
+         SocketWrapper::closeSocket(serverSocket);
+         return false;
+     }
+ 
+     // Try to bind to the initial port, and if that fails, try subsequent ports
+     const int MAX_PORT_ATTEMPTS = 10;
+     bool bound = false;
+ 
+     for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++)
+     {
+         if (SocketWrapper::bindSocket(serverSocket, port + attempt))
+         {
+             // Successfully bound to a port
+             port = port + attempt; // Update the port to the one we actually bound to
+             bound = true;
+             break;
+         }
+ 
+         std::cerr << "Failed to bind to port " << (port + attempt)
+                   << ": " << SocketWrapper::getLastError() << std::endl;
+     }
+ 
+     if (!bound)
+     {
+         std::cerr << "Failed to bind to any port after " << MAX_PORT_ATTEMPTS << " attempts" << std::endl;
+         SocketWrapper::closeSocket(serverSocket);
+         return false;
+     }
+ 
+     // Listen for connections
+     if (!SocketWrapper::listenSocket(serverSocket, 10))
+     {
+         std::cerr << "Failed to listen: " << SocketWrapper::getLastError() << std::endl;
+         SocketWrapper::closeSocket(serverSocket);
+         return false;
+     }
+ 
+     // Mark as running
+     running = true;
+ 
+     // Start accept thread
+     acceptThread = std::thread(&Server::acceptConnections, this);
+ 
+     // comment out this part of the code up until the return statement to see it work in the terminal
+     // then do the make clean process again
+     // Initialize WebSocket server 
+     wsServer.clear_access_channels(websocketpp::log::alevel::all);
+     wsServer.set_access_channels(websocketpp::log::alevel::access_core);
+     wsServer.set_access_channels(websocketpp::log::alevel::app);
+     
+     wsServer.init_asio();
+     
+     // Set handlers
+     wsServer.set_open_handler([this](websocketpp::connection_hdl hdl) {
+         this->onWebSocketOpen(hdl);
+     });
+     
+     wsServer.set_close_handler([this](websocketpp::connection_hdl hdl) {
+         this->onWebSocketClose(hdl);
+     });
+     
+     wsServer.set_message_handler([this](websocketpp::connection_hdl hdl, message_ptr msg) {
+         this->onWebSocketMessage(hdl, msg);
+     });
+     
+     // Listen on WebSocket port (8080)
+     try {
+         wsServer.listen(8080);
+         wsServer.start_accept();
+         
+         // Start WebSocket server thread
+         std::thread wsThread(&WebSocketServer::run, &wsServer);
+         wsThread.detach();  // Using detach instead of leaving the thread local
+         
+         std::cout << "WebSocket server started on port 8080" << std::endl;
+     } catch (const websocketpp::exception& e) {
+         std::cerr << "WebSocket server error: " << e.what() << std::endl;
+         // Continue running the TCP server even if WebSocket fails
+     }
+ 
+     std::cout << "Server started on port " << port << std::endl;
+     return true;
+}
+
+void Server::onWebSocketOpen(websocketpp::connection_hdl hdl) {
+    std::cout << "WebSocket connection opened" << std::endl;
+    // Store connection handle with placeholder client ID
+    wsConnections[hdl] = "Unknown";
+}
+
+void Server::onWebSocketClose(websocketpp::connection_hdl hdl) {
+    std::cout << "WebSocket connection closed" << std::endl;
+    // Remove from connections map
+    wsConnections.erase(hdl);
+}
+
+void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
+    std::string message = msg->get_payload();
+    std::cout << "Received WebSocket message: " << message << std::endl;
+    
+    // Process commands similar to handleClientConnection
+    std::string upperMessage = message;
+    for (char &c : upperMessage) {
+        c = toupper(c);
     }
-
-    // Set socket options
-    if (!SocketWrapper::setReuseAddr(serverSocket))
-    {
-        std::cerr << "Failed to set socket options: " << SocketWrapper::getLastError() << std::endl;
-        SocketWrapper::closeSocket(serverSocket);
-        return false;
-    }
-
-    // Try to bind to the initial port, and if that fails, try subsequent ports
-    const int MAX_PORT_ATTEMPTS = 10;
-    bool bound = false;
-
-    for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++)
-    {
-        if (SocketWrapper::bindSocket(serverSocket, port + attempt))
-        {
-            // Successfully bound to a port
-            port = port + attempt; // Update the port to the one we actually bound to
-            bound = true;
-            break;
+    
+    std::string response;
+    
+    try {
+        // Parse commands similar to your existing code
+        if (upperMessage.find("LOGIN") == 0) {
+            // Format: LOGIN username password
+            size_t firstSpace = message.find(" ");
+            size_t secondSpace = message.find(" ", firstSpace + 1);
+            
+            if (firstSpace != std::string::npos && secondSpace != std::string::npos) {
+                std::string username = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+                std::string password = message.substr(secondSpace + 1);
+                
+                // verify password here
+                //...
+                
+                wsConnections[hdl] = username;
+                response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
+            } else {
+                response = "{ \"type\": \"error\", \"message\": \"Invalid login format\" }";
+            }
+        } else if (upperMessage.find("REGISTER") == 0) {
+            // Format: REGISTER email username password
+            // Parse and handle registration
+            // ...
+            response = "{ \"type\": \"register_success\" }";
+        } else if (upperMessage.find("CREATE") == 0) {
+            // Check if user is logged in
+            std::string clientId = wsConnections[hdl];
+            if (clientId != "Unknown") {
+                int gameSessionId = createGameSession(clientId);
+                
+                response = "{ \"type\": \"game_created\", \"gameId\": " + std::to_string(gameSessionId) + " }";
+            } else {
+                response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
+            }
+        } else if (upperMessage.find("JOIN") == 0) {
+            // Format: JOIN gameId
+            size_t pos = message.find(" ");
+            if (pos != std::string::npos) {
+                std::string clientId = wsConnections[hdl];
+                if (clientId != "Unknown") {
+                    int sessionId = std::stoi(message.substr(pos + 1));
+                    if (joinGameSession(sessionId, clientId)) {
+                        GameSession* session = getGameSession(sessionId);
+                        if (session) {
+                            // Add WebSocket to notify for game updates
+                            session->addWebSocketHandle(hdl, &wsServer);
+                            
+                            // Get and send game state
+                            std::string boardState = session->getBoardState();
+                            response = "{ \"type\": \"game_joined\", \"gameId\": " + std::to_string(sessionId) + 
+                                       ", \"board\": " + boardState + " }";
+                        }
+                    } else {
+                        response = "{ \"type\": \"error\", \"message\": \"Failed to join game\" }";
+                    }
+                } else {
+                    response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
+                }
+            }
         }
-
-        std::cerr << "Failed to bind to port " << (port + attempt)
-                  << ": " << SocketWrapper::getLastError() << std::endl;
+        // Add other commands (MOVE, STATE, etc.)
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Exception processing WebSocket command: " << e.what() << std::endl;
+        response = "{ \"type\": \"error\", \"message\": \"Server error processing command\" }";
     }
-
-    if (!bound)
-    {
-        std::cerr << "Failed to bind to any port after " << MAX_PORT_ATTEMPTS << " attempts" << std::endl;
-        SocketWrapper::closeSocket(serverSocket);
-        return false;
+    
+    // Send response
+    try {
+        wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+    } catch (const websocketpp::exception& e) {
+        std::cerr << "Failed to send WebSocket response: " << e.what() << std::endl;
     }
-
-    // Listen for connections
-    if (!SocketWrapper::listenSocket(serverSocket, 10))
-    {
-        std::cerr << "Failed to listen: " << SocketWrapper::getLastError() << std::endl;
-        SocketWrapper::closeSocket(serverSocket);
-        return false;
-    }
-
-    // Mark as running
-    running = true;
-
-    // Start accept thread
-    acceptThread = std::thread(&Server::acceptConnections, this);
-
-    std::cout << "Server started on port " << port << std::endl;
-    return true;
 }
 
 void Server::stop()

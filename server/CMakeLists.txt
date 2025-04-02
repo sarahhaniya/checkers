@@ -46,4 +46,11 @@ add_executable(checkers
 # Installation rules
 install(TARGETS checkers_server checkers
         RUNTIME DESTINATION bin)
+
+# Add WebSocket++
+include_directories(${CMAKE_SOURCE_DIR}/websocketpp)
+# Add Boost ASIO (required by WebSocket++)
+find_package(Boost REQUIRED COMPONENTS system)
+include_directories(${Boost_INCLUDE_DIRS})
+target_link_libraries(your_target ${Boost_LIBRARIES})
         

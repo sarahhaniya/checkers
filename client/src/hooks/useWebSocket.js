@@ -1,38 +1,72 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const useWebSocket = (onMessage) => {
+const useWebSocket = (url, onMessage) => {
   const socketRef = useRef(null);
+  const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const reconnectTimeoutRef = useRef(null);
 
   useEffect(() => {
-    socketRef.current = new WebSocket("ws://localhost:3000");
+    // Clear any existing reconnect timeout if component re-renders
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
 
-    socketRef.current.onopen = () => {
-      console.log("Connected to server");
-    };
+    const connectWebSocket = () => {
+      // Make sure we're using the correct URL
+      socketRef.current = new WebSocket(url);
+      setConnectionStatus("connecting");
 
-    socketRef.current.onmessage = (event) => {
-      console.log("Received:", event.data);
-      onMessage(event.data);
-    };
+      socketRef.current.onopen = () => {
+        console.log("Connected to server");
+        setConnectionStatus("connected");
+      };
 
-    socketRef.current.onclose = () => {
-      console.log("Disconnected from server");
+      socketRef.current.onmessage = (event) => {
+        console.log("Received:", event.data);
+        onMessage(event.data);
+      };
+
+      socketRef.current.onclose = (event) => {
+        console.log("Disconnected from server", event.code, event.reason);
+        setConnectionStatus("disconnected");
+
+        // Auto reconnect after 3 seconds if not intentionally closed
+        if (!event.wasClean) {
+          console.log("Attempting to reconnect in 3 seconds...");
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connectWebSocket();
+          }, 3000);
+        }
+      };
+
+      socketRef.current.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setConnectionStatus("error");
+      };
     };
+    connectWebSocket();
 
     return () => {
-      socketRef.current.close();
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, [onMessage]);
+  }, [url, onMessage]);
 
   const sendMessage = (msg) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(msg);
+      return true;
     } else {
-      console.warn("WebSocket not ready");
+      console.warn("WebSocket not ready. Status:", connectionStatus);
+      return false;
     }
   };
 
-  return sendMessage;
+  return { sendMessage, status: connectionStatus };
 };
 
 export default useWebSocket;

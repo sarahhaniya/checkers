@@ -1,19 +1,27 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
+import Board from "./components/Board";
 
 function App() {
   const {
-    messages,
+    player,
     setPlayer,
+    gameId,
     setGameId,
+    board,
+    currentPlayer,
+    gameStatus,
+    messages,
     updateFromServer,
+    makeMove
   } = useGameState();
 
-  const memoizedUpdateFromServer = useCallback(updateFromServer, []);
-  const sendMessage = useWebSocket(memoizedUpdateFromServer);
+  const memoizedUpdateFromServer = useCallback(updateFromServer, [updateFromServer]);
+  const { sendMessage, status } = useWebSocket("http://localhost:8080", memoizedUpdateFromServer);
 
-  const [view, setView] = useState("login"); // 'login' or 'register'
+  const [view, setView] = useState("login"); // 'login', 'register', 'lobby', 'game'
+  const [gameIdInput, setGameIdInput] = useState("");
 
   // Login state
   const [loginUsername, setLoginUsername] = useState("");
@@ -24,10 +32,10 @@ function App() {
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
+
   const handleLogin = () => {
     if (loginUsername && loginPassword) {
       sendMessage(`login ${loginUsername} ${loginPassword}`);
-      setPlayer(loginUsername);
     }
   };
 
@@ -41,10 +49,24 @@ function App() {
     sendMessage("create");
   };
 
-  const handleJoinGame = (id) => {
-    sendMessage(`join ${id}`);
-    setGameId(id);
+  const handleJoinGame = () => {
+    if (gameIdInput) {
+      sendMessage(`join ${gameIdInput}`);
+    }
   };
+
+  const handleMakeMove = (fromX, fromY, toX, toY) => {
+    sendMessage(`move ${fromX} ${fromY} ${toX} ${toY}`);
+  };
+
+    // Handle successful login/game join
+    useEffect(() => {
+      if (player && !gameId) {
+        setView("lobby");
+      } else if (gameId) {
+        setView("game");
+      }
+    }, [player, gameId]);
 
   return (
     <div style={{ padding: "2rem", fontFamily: "Arial" }}>

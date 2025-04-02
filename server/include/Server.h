@@ -10,6 +10,9 @@
 #include <unordered_map>
 #include "SocketWrapper.h"
 
+#include "../websocketpp/websocketpp/server.hpp"
+#include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
+
 // Declare the function before any class definitions
 void killPreviousInstances();
 
@@ -32,6 +35,18 @@ private:
 
     // Method for accept thread
     void acceptConnections();
+
+    typedef websocketpp::server<websocketpp::config::asio> WebSocketServer;
+    typedef WebSocketServer::message_ptr message_ptr;
+    WebSocketServer wsServer;
+    
+    // WebSocket handlers
+    void onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg);
+    void onWebSocketOpen(websocketpp::connection_hdl hdl);
+    void onWebSocketClose(websocketpp::connection_hdl hdl);
+    
+    // Map to track WebSocket connections to client IDs
+    std::map<websocketpp::connection_hdl, std::string, std::owner_less<websocketpp::connection_hdl>> wsConnections;
 
 public:
     Server(int port, int numThreads);

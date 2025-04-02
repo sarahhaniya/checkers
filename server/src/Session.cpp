@@ -333,6 +333,22 @@ void GameSession::broadcastGameState()
         SocketWrapper::sendData(socket, message.c_str(), message.length());
     }
 
+              // Create a JSON representation of the game state
+              std::string boardJson = GameSession::getBoardStateJson();
+              std::string message = "{ \"type\": \"game_update\", \"gameId\": " + 
+                                   std::to_string(sessionId) + ", \"board\": " + 
+                                   boardJson + ", \"currentPlayer\": \"" + 
+                                   player1Id + "\" }";
+              
+              // Send to all WebSocket connections
+              for (auto& conn : GameSession::wsConnections) {
+                  try {
+                      conn.second->send(conn.first, message, websocketpp::frame::opcode::text);
+                  } catch (const websocketpp::exception& e) {
+                      // Handle errors
+                  }
+              }
+
     std::cout << "Broadcast completed" << std::endl;
 }
 
