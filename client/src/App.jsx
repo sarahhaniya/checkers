@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
-import Board from "./components/Board";
+//import Board from "./components/Board";
 
 function App() {
   const {
