@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include "SocketWrapper.h"
 
+#define ASIO_STANDALONE
 #include "../websocketpp/websocketpp/server.hpp"
 #include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
 

@@ -5,10 +5,15 @@ project(checkers_game)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Define ASIO_STANDALONE to use standalone ASIO instead of Boost
+add_definitions(-DASIO_STANDALONE)
+
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/GameLogic
+    ${CMAKE_CURRENT_SOURCE_DIR}/websocketpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/asio/asio/include  # Path to standalone ASIO
 )
 
 # Gather source files
@@ -46,11 +51,3 @@ add_executable(checkers
 # Installation rules
 install(TARGETS checkers_server checkers
         RUNTIME DESTINATION bin)
-
-# Add WebSocket++
-include_directories(${CMAKE_SOURCE_DIR}/websocketpp)
-# Add Boost ASIO (required by WebSocket++)
-find_package(Boost REQUIRED COMPONENTS system)
-include_directories(${Boost_INCLUDE_DIRS})
-target_link_libraries(your_target ${Boost_LIBRARIES})
-        
