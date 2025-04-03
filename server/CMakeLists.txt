@@ -6,8 +6,10 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Define ASIO_STANDALONE to use standalone ASIO instead of Boost
-add_definitions(-DASIO_STANDALONE)
-
+add_definitions(
+    -DASIO_STANDALONE
+    -D_WEBSOCKETPP_CPP11_THREAD_
+)
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
