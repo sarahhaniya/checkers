@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <functional>
 #include <atomic>
+#include <stdexcept>
 
 class ThreadPool
 {
