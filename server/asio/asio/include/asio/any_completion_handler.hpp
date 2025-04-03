@@ -11,21 +11,21 @@
 #ifndef ASIO_ANY_COMPLETION_HANDLER_HPP
 #define ASIO_ANY_COMPLETION_HANDLER_HPP
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 #include <cstring>
 #include <functional>
 #include <memory>
 #include <utility>
-#include "asio/any_completion_executor.hpp"
-#include "asio/any_io_executor.hpp"
-#include "asio/associated_allocator.hpp"
-#include "asio/associated_cancellation_slot.hpp"
-#include "asio/associated_executor.hpp"
-#include "asio/associated_immediate_executor.hpp"
-#include "asio/cancellation_state.hpp"
-#include "asio/recycling_allocator.hpp"
+#include "./any_completion_executor.hpp"
+#include "./any_io_executor.hpp"
+#include "./associated_allocator.hpp"
+#include "./associated_cancellation_slot.hpp"
+#include "./associated_executor.hpp"
+#include "./associated_immediate_executor.hpp"
+#include "./cancellation_state.hpp"
+#include "./recycling_allocator.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -817,6 +817,6 @@ struct associated_immediate_executor<
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // ASIO_ANY_COMPLETION_HANDLER_HPP

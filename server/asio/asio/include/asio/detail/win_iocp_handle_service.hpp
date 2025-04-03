@@ -16,24 +16,24 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #if defined(ASIO_HAS_IOCP)
 
-#include "asio/associated_cancellation_slot.hpp"
-#include "asio/error.hpp"
-#include "asio/execution_context.hpp"
-#include "asio/detail/buffer_sequence_adapter.hpp"
-#include "asio/detail/cstdint.hpp"
-#include "asio/detail/handler_alloc_helpers.hpp"
-#include "asio/detail/memory.hpp"
-#include "asio/detail/mutex.hpp"
-#include "asio/detail/operation.hpp"
-#include "asio/detail/win_iocp_handle_read_op.hpp"
-#include "asio/detail/win_iocp_handle_write_op.hpp"
-#include "asio/detail/win_iocp_io_context.hpp"
+#include "../associated_cancellation_slot.hpp"
+#include "../error.hpp"
+#include "../execution_context.hpp"
+#include "./buffer_sequence_adapter.hpp"
+#include "./cstdint.hpp"
+#include "./handler_alloc_helpers.hpp"
+#include "./memory.hpp"
+#include "./mutex.hpp"
+#include "./operation.hpp"
+#include "./win_iocp_handle_read_op.hpp"
+#include "./win_iocp_handle_write_op.hpp"
+#include "./win_iocp_io_context.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -420,10 +420,10 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/detail/impl/win_iocp_handle_service.ipp"
+# include "./impl/win_iocp_handle_service.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // defined(ASIO_HAS_IOCP)

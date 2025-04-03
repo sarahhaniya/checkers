@@ -15,11 +15,11 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 #include <tuple>
-#include "asio/detail/type_traits.hpp"
+#include "./detail/type_traits.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -68,8 +68,8 @@ consign(CompletionToken&& completion_token, Values&&... values)
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
-#include "asio/impl/consign.hpp"
+#include "./impl/consign.hpp"
 
 #endif // ASIO_CONSIGN_HPP

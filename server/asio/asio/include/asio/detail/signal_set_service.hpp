@@ -15,26 +15,26 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #include <cstddef>
 #include <signal.h>
-#include "asio/associated_cancellation_slot.hpp"
-#include "asio/cancellation_type.hpp"
-#include "asio/error.hpp"
-#include "asio/execution_context.hpp"
-#include "asio/signal_set_base.hpp"
-#include "asio/detail/handler_alloc_helpers.hpp"
-#include "asio/detail/memory.hpp"
-#include "asio/detail/op_queue.hpp"
-#include "asio/detail/signal_handler.hpp"
-#include "asio/detail/signal_op.hpp"
-#include "asio/detail/socket_types.hpp"
+#include "../associated_cancellation_slot.hpp"
+#include "../cancellation_type.hpp"
+#include "../error.hpp"
+#include "../execution_context.hpp"
+#include "../signal_set_base.hpp"
+#include "./handler_alloc_helpers.hpp"
+#include "./memory.hpp"
+#include "./op_queue.hpp"
+#include "./signal_handler.hpp"
+#include "./signal_op.hpp"
+#include "./socket_types.hpp"
 
 #if defined(ASIO_HAS_IOCP)
-# include "asio/detail/win_iocp_io_context.hpp"
+# include "./win_iocp_io_context.hpp"
 #else // defined(ASIO_HAS_IOCP)
-# include "asio/detail/scheduler.hpp"
+# include "./scheduler.hpp"
 #endif // defined(ASIO_HAS_IOCP)
 
 #if !defined(ASIO_WINDOWS) && !defined(__CYGWIN__)
@@ -45,7 +45,7 @@
 # endif // defined(ASIO_HAS_IO_URING_AS_DEFAULT)
 #endif // !defined(ASIO_WINDOWS) && !defined(__CYGWIN__)
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -283,10 +283,10 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/detail/impl/signal_set_service.ipp"
+# include "./impl/signal_set_service.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // ASIO_DETAIL_SIGNAL_SET_SERVICE_HPP

@@ -15,21 +15,21 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #if !defined(ASIO_HAS_THREADS)
-# include "asio/detail/null_tss_ptr.hpp"
+# include "./null_tss_ptr.hpp"
 #elif defined(ASIO_HAS_THREAD_KEYWORD_EXTENSION)
-# include "asio/detail/keyword_tss_ptr.hpp"
+# include "./keyword_tss_ptr.hpp"
 #elif defined(ASIO_WINDOWS)
-# include "asio/detail/win_tss_ptr.hpp"
+# include "./win_tss_ptr.hpp"
 #elif defined(ASIO_HAS_PTHREADS)
-# include "asio/detail/posix_tss_ptr.hpp"
+# include "./posix_tss_ptr.hpp"
 #else
 # error Only Windows and POSIX are supported!
 #endif
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -64,6 +64,6 @@ public:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
 #endif // ASIO_DETAIL_TSS_PTR_HPP

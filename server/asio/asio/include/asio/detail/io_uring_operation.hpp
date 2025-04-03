@@ -15,15 +15,15 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #if defined(ASIO_HAS_IO_URING)
 
 #include <liburing.h>
-#include "asio/detail/cstdint.hpp"
-#include "asio/detail/operation.hpp"
+#include "./cstdint.hpp"
+#include "./operation.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -77,7 +77,7 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
 #endif // defined(ASIO_HAS_IO_URING)
 

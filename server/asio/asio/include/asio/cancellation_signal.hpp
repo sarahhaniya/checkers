@@ -15,15 +15,15 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 #include <cassert>
 #include <new>
 #include <utility>
-#include "asio/cancellation_type.hpp"
-#include "asio/detail/cstddef.hpp"
-#include "asio/detail/type_traits.hpp"
+#include "./cancellation_type.hpp"
+#include "./detail/cstddef.hpp"
+#include "./detail/type_traits.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -236,10 +236,10 @@ inline cancellation_slot cancellation_signal::slot() noexcept
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/impl/cancellation_signal.ipp"
+# include "./impl/cancellation_signal.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // ASIO_CANCELLATION_SIGNAL_HPP

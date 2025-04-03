@@ -15,16 +15,16 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/is_applicable_property.hpp"
-#include "asio/traits/prefer_free.hpp"
-#include "asio/traits/prefer_member.hpp"
-#include "asio/traits/require_free.hpp"
-#include "asio/traits/require_member.hpp"
-#include "asio/traits/static_require.hpp"
+#include "./detail/config.hpp"
+#include "./detail/type_traits.hpp"
+#include "./is_applicable_property.hpp"
+#include "./traits/prefer_free.hpp"
+#include "./traits/prefer_member.hpp"
+#include "./traits/require_free.hpp"
+#include "./traits/require_member.hpp"
+#include "./traits/static_require.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 #if defined(GENERATING_DOCUMENTATION)
 
@@ -572,6 +572,6 @@ using prefer_result_t = typename prefer_result<T, Properties...>::type;
 
 #endif // defined(GENERATING_DOCUMENTATION)
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // ASIO_PREFER_HPP

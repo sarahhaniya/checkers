@@ -15,14 +15,14 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/detail/strand_executor_service.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/execution/blocking.hpp"
-#include "asio/execution/executor.hpp"
-#include "asio/is_executor.hpp"
+#include "./detail/config.hpp"
+#include "./detail/strand_executor_service.hpp"
+#include "./detail/type_traits.hpp"
+#include "./execution/blocking.hpp"
+#include "./execution/executor.hpp"
+#include "./is_executor.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -544,7 +544,7 @@ struct prefer_member<strand<Executor>, Property,
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 // If both io_context.hpp and strand.hpp have been included, automatically
 // include the header file needed for the io_context::strand class.

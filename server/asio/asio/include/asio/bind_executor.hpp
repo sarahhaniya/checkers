@@ -15,18 +15,18 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/associated_executor.hpp"
-#include "asio/associator.hpp"
-#include "asio/async_result.hpp"
-#include "asio/detail/initiation_base.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/execution/executor.hpp"
-#include "asio/execution_context.hpp"
-#include "asio/is_executor.hpp"
-#include "asio/uses_executor.hpp"
+#include "./detail/config.hpp"
+#include "./associated_executor.hpp"
+#include "./associator.hpp"
+#include "./async_result.hpp"
+#include "./detail/initiation_base.hpp"
+#include "./detail/type_traits.hpp"
+#include "./execution/executor.hpp"
+#include "./execution_context.hpp"
+#include "./is_executor.hpp"
+#include "./uses_executor.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -666,6 +666,6 @@ struct associated_executor<executor_binder<T, Executor>, Executor1>
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // ASIO_BIND_EXECUTOR_HPP

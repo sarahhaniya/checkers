@@ -15,19 +15,19 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 #include <cstddef>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "asio/detail/array_fwd.hpp"
-#include "asio/detail/memory.hpp"
-#include "asio/detail/string_view.hpp"
-#include "asio/detail/throw_exception.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/is_contiguous_iterator.hpp"
+#include "./detail/array_fwd.hpp"
+#include "./detail/memory.hpp"
+#include "./detail/string_view.hpp"
+#include "./detail/throw_exception.hpp"
+#include "./detail/type_traits.hpp"
+#include "./is_contiguous_iterator.hpp"
 
 #if defined(ASIO_MSVC) && (ASIO_MSVC >= 1700)
 # if defined(_HAS_ITERATOR_DEBUGGING) && (_HAS_ITERATOR_DEBUGGING != 0)
@@ -46,10 +46,10 @@
 #endif // defined(__GNUC__)
 
 #if defined(ASIO_ENABLE_BUFFER_DEBUGGING)
-# include "asio/detail/functional.hpp"
+# include "./detail/functional.hpp"
 #endif // ASIO_ENABLE_BUFFER_DEBUGGING
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -2516,9 +2516,9 @@ inline std::size_t buffer_copy(const MutableBufferSequence& target,
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
-#include "asio/detail/is_buffer_sequence.hpp"
-#include "asio/detail/push_options.hpp"
+#include "./detail/pop_options.hpp"
+#include "./detail/is_buffer_sequence.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -2750,6 +2750,6 @@ inline const_buffer operator ""_buf()
 } // namespace buffer_literals
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // ASIO_BUFFER_HPP

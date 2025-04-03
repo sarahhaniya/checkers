@@ -15,33 +15,33 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 #include <cstddef>
 #include <stdexcept>
 #include <typeinfo>
-#include "asio/async_result.hpp"
-#include "asio/detail/chrono.hpp"
-#include "asio/detail/concurrency_hint.hpp"
-#include "asio/detail/cstdint.hpp"
-#include "asio/detail/wrapped_handler.hpp"
-#include "asio/error_code.hpp"
-#include "asio/execution.hpp"
-#include "asio/execution_context.hpp"
+#include "./async_result.hpp"
+#include "./detail/chrono.hpp"
+#include "./detail/concurrency_hint.hpp"
+#include "./detail/cstdint.hpp"
+#include "./detail/wrapped_handler.hpp"
+#include "./error_code.hpp"
+#include "./execution.hpp"
+#include "./execution_context.hpp"
 
 #if defined(ASIO_WINDOWS) || defined(__CYGWIN__)
-# include "asio/detail/winsock_init.hpp"
+# include "./detail/winsock_init.hpp"
 #elif defined(__sun) || defined(__QNX__) || defined(__hpux) || defined(_AIX) \
   || defined(__osf__)
-# include "asio/detail/signal_init.hpp"
+# include "./detail/signal_init.hpp"
 #endif
 
 #if defined(ASIO_HAS_IOCP)
-# include "asio/detail/win_iocp_io_context.hpp"
+# include "./detail/win_iocp_io_context.hpp"
 #else
-# include "asio/detail/scheduler.hpp"
+# include "./detail/scheduler.hpp"
 #endif
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -1267,11 +1267,11 @@ struct is_executor<io_context> : false_type
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
-#include "asio/impl/io_context.hpp"
+#include "./impl/io_context.hpp"
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/impl/io_context.ipp"
+# include "./impl/io_context.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 // If both io_context.hpp and strand.hpp have been included, automatically

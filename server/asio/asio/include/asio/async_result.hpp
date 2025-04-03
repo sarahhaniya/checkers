@@ -15,10 +15,10 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/detail/type_traits.hpp"
+#include "./detail/config.hpp"
+#include "./detail/type_traits.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -941,8 +941,8 @@ using completion_signature_of_t =
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
-#include "asio/default_completion_token.hpp"
+#include "./default_completion_token.hpp"
 
 #endif // ASIO_ASYNC_RESULT_HPP

@@ -15,18 +15,18 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #if defined(ASIO_HAS_IOCP) && defined(ASIO_HAS_FILE)
 
 #include <string>
-#include "asio/detail/cstdint.hpp"
-#include "asio/detail/win_iocp_handle_service.hpp"
-#include "asio/error.hpp"
-#include "asio/execution_context.hpp"
-#include "asio/file_base.hpp"
+#include "./cstdint.hpp"
+#include "./win_iocp_handle_service.hpp"
+#include "../error.hpp"
+#include "../execution_context.hpp"
+#include "../file_base.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -276,10 +276,10 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/detail/impl/win_iocp_file_service.ipp"
+# include "./impl/win_iocp_file_service.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // defined(ASIO_HAS_IOCP) && defined(ASIO_HAS_FILE)

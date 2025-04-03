@@ -15,26 +15,26 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./config.hpp"
 
 #if defined(ASIO_HAS_IO_URING)
 
 #include <liburing.h>
-#include "asio/detail/atomic_count.hpp"
-#include "asio/detail/buffer_sequence_adapter.hpp"
-#include "asio/detail/conditionally_enabled_mutex.hpp"
-#include "asio/detail/io_uring_operation.hpp"
-#include "asio/detail/limits.hpp"
-#include "asio/detail/object_pool.hpp"
-#include "asio/detail/op_queue.hpp"
-#include "asio/detail/reactor.hpp"
-#include "asio/detail/scheduler_task.hpp"
-#include "asio/detail/timer_queue_base.hpp"
-#include "asio/detail/timer_queue_set.hpp"
-#include "asio/detail/wait_op.hpp"
-#include "asio/execution_context.hpp"
+#include "./atomic_count.hpp"
+#include "./buffer_sequence_adapter.hpp"
+#include "./conditionally_enabled_mutex.hpp"
+#include "./io_uring_operation.hpp"
+#include "./limits.hpp"
+#include "./object_pool.hpp"
+#include "./op_queue.hpp"
+#include "./reactor.hpp"
+#include "./scheduler_task.hpp"
+#include "./timer_queue_base.hpp"
+#include "./timer_queue_set.hpp"
+#include "./wait_op.hpp"
+#include "../execution_context.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -313,11 +313,11 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
-#include "asio/detail/impl/io_uring_service.hpp"
+#include "./impl/io_uring_service.hpp"
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/detail/impl/io_uring_service.ipp"
+# include "./impl/io_uring_service.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // defined(ASIO_HAS_IO_URING)

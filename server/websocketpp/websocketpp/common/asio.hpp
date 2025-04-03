@@ -43,14 +43,14 @@
 // for this has passed this should be cleaned up and simplified.
 
 #ifdef ASIO_STANDALONE
-    #include <asio/version.hpp>
+    #include "../../.././asio/asio/include/asio/version.hpp"
     
     #if (ASIO_VERSION/100000) == 1 && ((ASIO_VERSION/100)%1000) < 8
         static_assert(false, "The minimum version of standalone Asio is 1.8.0");
     #endif
     
-    #include <asio.hpp>
-    #include <asio/steady_timer.hpp>
+    #include "asio.hpp"
+    #include "../../.././asio/asio/include/asio/steady_timer.hpp"
     #include "chrono.hpp" 
 #else
     #include <boost/version.hpp>

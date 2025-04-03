@@ -17,11 +17,11 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "../detail/config.hpp"
 
 #if defined(ASIO_HAS_PIPE)
 
-#include "asio/connect_pipe.hpp"
+#include "../connect_pipe.hpp"
 
 #if defined(ASIO_HAS_IOCP)
 # include <cstdio>
@@ -37,7 +37,7 @@
 # include "asio/detail/descriptor_ops.hpp"
 #endif // defined(ASIO_HAS_IOCP)
 
-#include "asio/detail/push_options.hpp"
+#include "../detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -142,7 +142,7 @@ void close_pipe(native_pipe_handle p)
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "../detail/pop_options.hpp"
 
 #endif // defined(ASIO_HAS_PIPE)
 

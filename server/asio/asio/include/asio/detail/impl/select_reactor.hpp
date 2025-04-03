@@ -15,7 +15,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "../config.hpp"
 
 #if defined(ASIO_HAS_IOCP) \
   || (!defined(ASIO_HAS_DEV_POLL) \
@@ -24,12 +24,12 @@
       && !defined(ASIO_WINDOWS_RUNTIME))
 
 #if defined(ASIO_HAS_IOCP)
-# include "asio/detail/win_iocp_io_context.hpp"
+# include "../win_iocp_io_context.hpp"
 #else // defined(ASIO_HAS_IOCP)
-# include "asio/detail/scheduler.hpp"
+# include "../scheduler.hpp"
 #endif // defined(ASIO_HAS_IOCP)
 
-#include "asio/detail/push_options.hpp"
+#include "../push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -113,7 +113,7 @@ void select_reactor::move_timer(timer_queue<Time_Traits>& queue,
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "../pop_options.hpp"
 
 #endif // defined(ASIO_HAS_IOCP)
        //   || (!defined(ASIO_HAS_DEV_POLL)

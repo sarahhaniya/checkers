@@ -15,29 +15,29 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "../detail/config.hpp"
 #include <tuple>
-#include "asio/associated_allocator.hpp"
-#include "asio/associated_cancellation_slot.hpp"
-#include "asio/associated_executor.hpp"
-#include "asio/async_result.hpp"
-#include "asio/bind_executor.hpp"
-#include "asio/detail/atomic_count.hpp"
-#include "asio/detail/bind_handler.hpp"
-#include "asio/detail/handler_cont_helpers.hpp"
-#include "asio/detail/memory.hpp"
-#include "asio/detail/noncopyable.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/detail/utility.hpp"
-#include "asio/disposition.hpp"
-#include "asio/error.hpp"
-#include "asio/system_error.hpp"
+#include "../associated_allocator.hpp"
+#include "../associated_cancellation_slot.hpp"
+#include "../associated_executor.hpp"
+#include "../async_result.hpp"
+#include "../bind_executor.hpp"
+#include "../detail/atomic_count.hpp"
+#include "../detail/bind_handler.hpp"
+#include "../detail/handler_cont_helpers.hpp"
+#include "../detail/memory.hpp"
+#include "../detail/noncopyable.hpp"
+#include "../detail/type_traits.hpp"
+#include "../detail/utility.hpp"
+#include "../disposition.hpp"
+#include "../error.hpp"
+#include "../system_error.hpp"
 
 #if defined(ASIO_HAS_BOOST_CONTEXT_FIBER)
 # include <boost/context/fiber.hpp>
 #endif // defined(ASIO_HAS_BOOST_CONTEXT_FIBER)
 
-#include "asio/detail/push_options.hpp"
+#include "../detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -1106,6 +1106,6 @@ inline auto spawn(const basic_yield_context<Executor>& ctx, allocator_arg_t,
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "../detail/pop_options.hpp"
 
 #endif // ASIO_IMPL_SPAWN_HPP

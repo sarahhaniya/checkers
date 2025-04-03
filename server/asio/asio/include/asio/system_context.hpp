@@ -15,13 +15,13 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/detail/scheduler.hpp"
-#include "asio/detail/thread_group.hpp"
-#include "asio/execution.hpp"
-#include "asio/execution_context.hpp"
+#include "./detail/config.hpp"
+#include "./detail/scheduler.hpp"
+#include "./detail/thread_group.hpp"
+#include "./execution.hpp"
+#include "./execution_context.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -80,11 +80,11 @@ private:
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
-#include "asio/impl/system_context.hpp"
+#include "./impl/system_context.hpp"
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/impl/system_context.ipp"
+# include "./impl/system_context.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // ASIO_SYSTEM_CONTEXT_HPP

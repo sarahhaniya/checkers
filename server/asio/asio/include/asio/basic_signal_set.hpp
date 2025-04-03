@@ -15,21 +15,21 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 
-#include "asio/any_io_executor.hpp"
-#include "asio/async_result.hpp"
-#include "asio/detail/handler_type_requirements.hpp"
-#include "asio/detail/io_object_impl.hpp"
-#include "asio/detail/non_const_lvalue.hpp"
-#include "asio/detail/signal_set_service.hpp"
-#include "asio/detail/throw_error.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/error.hpp"
-#include "asio/execution_context.hpp"
-#include "asio/signal_set_base.hpp"
+#include "./any_io_executor.hpp"
+#include "./async_result.hpp"
+#include "./detail/handler_type_requirements.hpp"
+#include "./detail/io_object_impl.hpp"
+#include "./detail/non_const_lvalue.hpp"
+#include "./detail/signal_set_service.hpp"
+#include "./detail/throw_error.hpp"
+#include "./detail/type_traits.hpp"
+#include "./error.hpp"
+#include "./execution_context.hpp"
+#include "./signal_set_base.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 
@@ -643,6 +643,6 @@ private:
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // ASIO_BASIC_SIGNAL_SET_HPP

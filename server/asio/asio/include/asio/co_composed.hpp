@@ -15,22 +15,22 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "./detail/config.hpp"
 
 #if defined(ASIO_HAS_CO_AWAIT) || defined(GENERATING_DOCUMENTATION)
 
 #include <new>
 #include <tuple>
 #include <variant>
-#include "asio/associated_cancellation_slot.hpp"
-#include "asio/associator.hpp"
-#include "asio/async_result.hpp"
-#include "asio/cancellation_state.hpp"
-#include "asio/detail/composed_work.hpp"
-#include "asio/detail/recycling_allocator.hpp"
-#include "asio/detail/throw_error.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/error.hpp"
+#include "./associated_cancellation_slot.hpp"
+#include "./associator.hpp"
+#include "./async_result.hpp"
+#include "./cancellation_state.hpp"
+#include "./detail/composed_work.hpp"
+#include "./detail/recycling_allocator.hpp"
+#include "./detail/throw_error.hpp"
+#include "./detail/type_traits.hpp"
+#include "./error.hpp"
 
 #if defined(ASIO_HAS_STD_COROUTINE)
 # include <coroutine>
@@ -44,7 +44,7 @@
 # endif // defined(ASIO_HAS_SOURCE_LOCATION)
 #endif // defined(ASIO_ENABLE_HANDLER_TRACKING)
 
-#include "asio/detail/push_options.hpp"
+#include "./detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -1312,7 +1312,7 @@ inline auto co_composed(Implementation&& implementation,
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./detail/pop_options.hpp"
 
 #endif // defined(ASIO_HAS_CO_AWAIT) || defined(GENERATING_DOCUMENTATION)
 

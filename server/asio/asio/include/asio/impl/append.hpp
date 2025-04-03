@@ -15,15 +15,15 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/associator.hpp"
-#include "asio/async_result.hpp"
-#include "asio/detail/handler_cont_helpers.hpp"
-#include "asio/detail/initiation_base.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/detail/utility.hpp"
+#include "../detail/config.hpp"
+#include "../associator.hpp"
+#include "../async_result.hpp"
+#include "../detail/handler_cont_helpers.hpp"
+#include "../detail/initiation_base.hpp"
+#include "../detail/type_traits.hpp"
+#include "../detail/utility.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "../detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -164,6 +164,6 @@ struct associator<Associator,
 
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "../detail/pop_options.hpp"
 
 #endif // ASIO_IMPL_APPEND_HPP

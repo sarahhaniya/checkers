@@ -15,19 +15,19 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
-#include "asio/detail/atomic_count.hpp"
-#include "asio/detail/executor_op.hpp"
-#include "asio/detail/memory.hpp"
-#include "asio/detail/mutex.hpp"
-#include "asio/detail/op_queue.hpp"
-#include "asio/detail/scheduler_operation.hpp"
-#include "asio/detail/scoped_ptr.hpp"
-#include "asio/detail/type_traits.hpp"
-#include "asio/execution.hpp"
-#include "asio/execution_context.hpp"
+#include "./config.hpp"
+#include "./atomic_count.hpp"
+#include "./executor_op.hpp"
+#include "./memory.hpp"
+#include "./mutex.hpp"
+#include "./op_queue.hpp"
+#include "./scheduler_operation.hpp"
+#include "./scoped_ptr.hpp"
+#include "./type_traits.hpp"
+#include "../execution.hpp"
+#include "../execution_context.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "./push_options.hpp"
 
 namespace asio {
 namespace detail {
@@ -163,11 +163,11 @@ private:
 } // namespace detail
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "./pop_options.hpp"
 
-#include "asio/detail/impl/strand_executor_service.hpp"
+#include "./impl/strand_executor_service.hpp"
 #if defined(ASIO_HEADER_ONLY)
-# include "asio/detail/impl/strand_executor_service.ipp"
+# include "./impl/strand_executor_service.ipp"
 #endif // defined(ASIO_HEADER_ONLY)
 
 #endif // ASIO_DETAIL_STRAND_EXECUTOR_SERVICE_HPP
