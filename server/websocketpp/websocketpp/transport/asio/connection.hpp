@@ -45,15 +45,13 @@
 #include "../../common/memory.hpp"
 #include "../../common/functional.hpp"
 #include "../../common/connection_hdl.hpp"
-
-
+ 
  #include <istream>
  #include <sstream>
  #include <string>
  #include <vector>
  
- namespace websocketpp
- {
+ namespace websocketpp {
  namespace transport {
  namespace asio {
  
@@ -197,14 +195,12 @@
          ec = lib::error_code();
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// Set the proxy to connect through (exception)
      void set_proxy(std::string const & uri) {
          lib::error_code ec;
          set_proxy(uri,ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      /// Set the basic auth credentials to use (exception free)
      /**
@@ -233,7 +229,6 @@
          ec = lib::error_code();
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// Set the basic auth credentials to use (exception)
      void set_proxy_basic_auth(std::string const & username, std::string const &
          password)
@@ -242,7 +237,6 @@
          set_proxy_basic_auth(username,password,ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      /// Set the proxy timeout duration (exception free)
      /**
@@ -264,14 +258,12 @@
          ec = lib::error_code();
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// Set the proxy timeout duration (exception)
      void set_proxy_timeout(long duration) {
          lib::error_code ec;
          set_proxy_timeout(duration,ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      std::string const & get_proxy() const {
          return m_proxy;
@@ -326,7 +318,7 @@
                  lib::asio::milliseconds(duration))
          );
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              new_timer->async_wait(m_strand->wrap(lib::bind(
                  &type::handle_timer, get_shared(),
                  new_timer,
@@ -470,8 +462,8 @@
      lib::error_code init_asio (io_service_ptr io_service) {
          m_io_service = io_service;
  
-         if constexpr(config::enable_multithreading) {
-           m_strand.reset(new lib::asio::io_context::strand(*io_service));
+         if (config::enable_multithreading) {
+             m_strand.reset(new lib::asio::io_context::strand(*io_service));
          }
  
          lib::error_code ec = socket_con_type::init_asio(io_service, m_strand,
@@ -634,7 +626,7 @@
          );
  
          // Send proxy request
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_write(
                  socket_con_type::get_next_layer(),
                  m_bufs,
@@ -712,11 +704,12 @@
          if (!m_proxy_data) {
              m_elog->write(log::elevel::library,
                  "assertion failed: !m_proxy_data in asio::connection::proxy_read");
+             m_proxy_data->timer->cancel();
              callback(make_error_code(error::general));
              return;
          }
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_read_until(
                  socket_con_type::get_next_layer(),
                  m_proxy_data->read_buf,
@@ -780,19 +773,9 @@
                  return;
              }
  
-             // todo: switch this to using non-istream based consume
              std::istream input(&m_proxy_data->read_buf);
  
-             lib::error_code istream_ec;
              m_proxy_data->res.consume(input);
-             if (istream_ec) {
-                 // there was an error while reading from the proxy
-                 m_elog->write(log::elevel::info,
-                     "An HTTP handling error occurred while reading a response from the proxy server: "+istream_ec.message());
-                 // todo: do we need to translate this error?
-                 callback(istream_ec);
-                 return;
-             }
  
              if (!m_proxy_data->res.headers_ready()) {
                  // we read until the headers were done in theory but apparently
@@ -854,7 +837,7 @@
              return;
          }*/
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_read(
                  socket_con_type::get_socket(),
                  lib::asio::buffer(buf,len),
@@ -924,7 +907,7 @@
      void async_write(const char* buf, size_t len, write_handler handler) {
          m_bufs.push_back(lib::asio::buffer(buf,len));
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_write(
                  socket_con_type::get_socket(),
                  m_bufs,
@@ -957,14 +940,11 @@
      void async_write(std::vector<buffer> const & bufs, write_handler handler) {
          std::vector<buffer>::const_iterator it;
  
-         // todo: check if this underlying socket supports efficient scatter/gather io
-         // if not, coalesce buffers before we send to the underlying transport.
- 
          for (it = bufs.begin(); it != bufs.end(); ++it) {
              m_bufs.push_back(lib::asio::buffer((*it).buf,(*it).len));
          }
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_write(
                  socket_con_type::get_socket(),
                  m_bufs,
@@ -1033,18 +1013,18 @@
       */
      lib::error_code interrupt(interrupt_handler handler) {
          if constexpr(config::enable_multithreading) {
-           boost::asio::post(*m_io_service, m_strand->wrap(handler));
+           lib::asio::post(*m_io_service, m_strand->wrap(handler));
          } else {
-           boost::asio::post(*m_io_service, handler);
+           lib::asio::post(*m_io_service, handler);
          }
          return lib::error_code();
      }
  
      lib::error_code dispatch(dispatch_handler handler) {
          if constexpr(config::enable_multithreading) {
-           boost::asio::post(*m_io_service, m_strand->wrap(handler));
+           lib::asio::post(*m_io_service, m_strand->wrap(handler));
          } else {
-           boost::asio::post(*m_io_service, handler);
+           lib::asio::post(*m_io_service, handler);
          }
          return lib::error_code();
      }

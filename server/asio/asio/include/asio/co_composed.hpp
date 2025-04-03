@@ -40,7 +40,7 @@
 
 #if defined(ASIO_ENABLE_HANDLER_TRACKING)
 # if defined(ASIO_HAS_SOURCE_LOCATION)
-#  include "asio/detail/source_location.hpp"
+#  include "./detail/source_location.hpp"
 # endif // defined(ASIO_HAS_SOURCE_LOCATION)
 #endif // defined(ASIO_ENABLE_HANDLER_TRACKING)
 

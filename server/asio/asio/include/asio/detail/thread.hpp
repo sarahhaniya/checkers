@@ -23,11 +23,11 @@
 # include "./posix_thread.hpp"
 #elif defined(ASIO_WINDOWS)
 # if defined(UNDER_CE)
-#  include "asio/detail/wince_thread.hpp"
+#  include "../detail/wince_thread.hpp"
 # elif defined(ASIO_WINDOWS_APP)
-#  include "asio/detail/winapp_thread.hpp"
+#  include "../detail/winapp_thread.hpp"
 # else
-#  include "asio/detail/win_thread.hpp"
+#  include "../detail/win_thread.hpp"
 # endif
 #else
 # include "./std_thread.hpp"

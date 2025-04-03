@@ -15,7 +15,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "asio/detail/config.hpp"
+#include "../detail/config.hpp"
 
 #if defined(ASIO_HAS_WINDOWS_RANDOM_ACCESS_HANDLE) \
   || defined(ASIO_HAS_WINDOWS_STREAM_HANDLE) \
@@ -23,15 +23,15 @@
 
 #include <cstddef>
 #include <utility>
-#include "asio/any_io_executor.hpp"
-#include "asio/async_result.hpp"
-#include "asio/detail/io_object_impl.hpp"
-#include "asio/detail/throw_error.hpp"
-#include "asio/detail/win_iocp_handle_service.hpp"
-#include "asio/error.hpp"
-#include "asio/execution_context.hpp"
+#include "../any_io_executor.hpp"
+#include "../async_result.hpp"
+#include "../detail/io_object_impl.hpp"
+#include "../detail/throw_error.hpp"
+#include "../detail/win_iocp_handle_service.hpp"
+#include "../error.hpp"
+#include "../execution_context.hpp"
 
-#include "asio/detail/push_options.hpp"
+#include "../detail/push_options.hpp"
 
 namespace asio {
 namespace windows {
@@ -446,7 +446,7 @@ private:
 } // namespace windows
 } // namespace asio
 
-#include "asio/detail/pop_options.hpp"
+#include "../detail/pop_options.hpp"
 
 #endif // defined(ASIO_HAS_WINDOWS_RANDOM_ACCESS_HANDLE)
        //   || defined(ASIO_HAS_WINDOWS_STREAM_HANDLE)

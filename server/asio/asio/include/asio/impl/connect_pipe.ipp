@@ -34,7 +34,7 @@
 #  endif // !defined(ASIO_NO_DEFAULT_LINKED_LIBS)
 # endif // _WIN32_WINNT >= 0x601
 #else // defined(ASIO_HAS_IOCP)
-# include "asio/detail/descriptor_ops.hpp"
+# include "../detail/descriptor_ops.hpp"
 #endif // defined(ASIO_HAS_IOCP)
 
 #include "../detail/push_options.hpp"
