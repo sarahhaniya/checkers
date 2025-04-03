@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 const useGameState = () => {
   const [player, setPlayer] = useState("");
-  const [gameId, setGameId] = useState(null);
+  const [gameId, setGameId] = useState("");
   const [board, setBoard] = useState(
     Array(8)
       .fill()
@@ -20,27 +20,34 @@ const useGameState = () => {
       switch (response.type) {
         case "login_success":
           setMessages((prev) => [...prev, `Logged in as ${response.username}`]);
+          setPlayer(response.username);
           break;
 
         case "game_created":
-          setGameId(response.gameId);
+          setGameStatus("waiting");
+          setCurrentPlayer("");
+          setGameId(response.gameCode);
           setMessages((prev) => [
             ...prev,
-            `Game created with ID: ${response.gameId}`,
+            `Game created with ID: ${response.gameCode}`,
           ]);
           break;
 
-        case "game_joined":
-          setGameId(response.gameId);
+        case "game_joined": {
+          const { gameInfo } = response;
+
           if (response.board) {
             setBoard(response.board);
           }
           setGameStatus("playing");
+          setCurrentPlayer(gameInfo.currentTurn);
           setMessages((prev) => [
             ...prev,
             `Joined game with ID: ${response.gameId}`,
           ]);
+
           break;
+        }
 
         case "game_update":
           setBoard(response.board);
@@ -62,7 +69,7 @@ const useGameState = () => {
           setMessages((prev) => [...prev, `Received: ${data}`]);
       }
     } catch (err) {
-      console.error("Failed to parse server message:", data);
+      console.error("Failed to parse server message:", err);
       setMessages((prev) => [...prev, `Received: ${data}`]);
     }
   }, []);

@@ -34,7 +34,7 @@ private:
     std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>> wsConnections;
 
 public:
-    GameSession(int id, const std::string &p1Id);
+    GameSession(std::string inviteCode, int id, const std::string &p1Id);
     ~GameSession();
 
     bool joinGame(const std::string &p2Id);
@@ -60,22 +60,8 @@ public:
         wsConnections.push_back(std::make_pair(hdl, server));
     }
 
-      // Add method to get JSON representation of board
-      std::string getBoardStateJson() {
-        std::stringstream ss;
-        ss << "[";
-        for (int y = 0; y < 8; y++) {
-            ss << "[";
-            for (int x = 0; x < 8; x++) {
-                ss << "\"" << gameBoard.getValueAt(x, y) << "\"";
-                if (x < 7) ss << ",";
-            }
-            ss << "]";
-            if (y < 7) ss << ",";
-        }
-        ss << "]";
-        return ss.str();
-    }
+      // get JSON representation of board
+      std::string getBoardStateJson() const;
 };
 
 #endif // SESSION_H

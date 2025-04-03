@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-GameSession::GameSession(int id, const std::string &p1Id)
+GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id)
     : sessionId(id),
       player1Id(p1Id),
       gameStarted(false),
@@ -334,16 +334,13 @@ void GameSession::broadcastGameState()
     }
 
               // Create a JSON representation of the game state
-              std::string boardJson = GameSession::getBoardStateJson();
-              std::string message = "{ \"type\": \"game_update\", \"gameId\": " + 
-                                   std::to_string(sessionId) + ", \"board\": " + 
-                                   boardJson + ", \"currentPlayer\": \"" + 
-                                   player1Id + "\" }";
+              std::string boardJson = getBoardStateJson();
+           
               
               // Send to all WebSocket connections
               for (auto& conn : GameSession::wsConnections) {
                   try {
-                      conn.second->send(conn.first, message, websocketpp::frame::opcode::text);
+                      conn.second->send(conn.first, boardJson, websocketpp::frame::opcode::text);
                   } catch (const websocketpp::exception& e) {
                       // Handle errors
                   }
@@ -460,6 +457,63 @@ std::string GameSession::getBoardState() const
     }
 
     return ss.str();
+}
+
+std::string GameSession::getBoardStateJson() const
+{
+       // Create a clean JSON structure
+       std::stringstream ss;
+       ss << "{";
+       ss << "\"type\":\"game_joined\",";
+       ss << "\"gameId\":\"" << sessionId << "\",";
+       
+       // Add gameInfo directly (not as a string)
+       ss << "\"gameInfo\":{";
+       ss << "\"player1Id\":\"" << player1Id << "\",";
+       ss << "\"player2Id\":\"" << player2Id << "\",";
+       ss << "\"currentTurn\":\"" << (isPlayer1Turn ? "Player1" : "Player2") << "\"";
+       ss << "},";
+       
+       // Add board directly (not as a string)
+       ss << "\"board\":[";
+       
+       // Header row
+       ss << "[\" \",\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\"],";
+       
+       // Board content
+       for (int y = 0; y < Board::SIZE; y++) {
+           ss << "[\"" << y << "\",";
+           
+           for (int x = 0; x < Board::SIZE; x++) {
+               Piece* piece = gameBoard.getValueAt(x, y);
+               
+               if (piece != nullptr) {
+                   std::string pieceStr = piece->isWhite ? "W " : "B ";
+                   if (piece->getString().find("K") != std::string::npos) {
+                       pieceStr = piece->isWhite ? "WK" : "BK";
+                   }
+                   ss << "\"" << pieceStr << "\"";
+               } else if (gameBoard.isCheckerboardSpace(x, y)) {
+                   ss << "\".\"";
+               } else {
+                   ss << "\" \"";
+               }
+               
+               if (x < Board::SIZE - 1) {
+                   ss << ",";
+               }
+           }
+           
+           ss << "]";
+           if (y < Board::SIZE - 1) {
+               ss << ",";
+           }
+       }
+       
+       ss << "]";
+       ss << "}";
+       
+       return ss.str();
 }
 
 void GameSession::addClientSocket(socket_t socket)

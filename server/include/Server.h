@@ -29,6 +29,7 @@ private:
 
     std::mutex sessionsMutex;
     std::unordered_map<int, GameSession *> gameSessions;
+    std::unordered_map<int, std::string > gameCodes;
     int nextSessionId;
 
     std::thread acceptThread;

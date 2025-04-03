@@ -52,6 +52,7 @@ Server::~Server()
     {
         delete pair.second;
     }
+ 
 
     // Clean up thread pool
     delete threadPool;
@@ -211,8 +212,15 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
             std::string clientId = wsConnections[hdl];
             if (clientId != "Unknown") {
                 int gameSessionId = createGameSession(clientId);
+
+                   // Get the session and add this client's socket
+                   GameSession *session = getGameSession(gameSessionId);
+                   if (session)
+                   {
+                       session->addWebSocketHandle(hdl, &wsServer);
+                   }
                 
-                response = "{ \"type\": \"game_created\", \"gameId\": " + std::to_string(gameSessionId) + " }";
+                response = "{ \"type\": \"game_created\", \"gameCode\": \"" + gameCodes[gameSessionId] + "\" }";
             } else {
                 response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
             }
@@ -222,17 +230,24 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
             if (pos != std::string::npos) {
                 std::string clientId = wsConnections[hdl];
                 if (clientId != "Unknown") {
-                    int sessionId = std::stoi(message.substr(pos + 1));
+                    std::string code = message.substr(pos + 1);
+                    int sessionId = 0;
+                    for (const auto& [key, value] : gameCodes){
+                     if (value == code){
+                      sessionId = key;
+                     }
+                    }
+              
                     if (joinGameSession(sessionId, clientId)) {
                         GameSession* session = getGameSession(sessionId);
                         if (session) {
                             // Add WebSocket to notify for game updates
                             session->addWebSocketHandle(hdl, &wsServer);
-                            
+                            session->broadcastGameState();
+
                             // Get and send game state
-                            std::string boardState = session->getBoardState();
-                            response = "{ \"type\": \"game_joined\", \"gameId\": " + std::to_string(sessionId) + 
-                                       ", \"board\": " + boardState + " }";
+                            std::string boardState = session->getBoardStateJson();
+                            response = boardState;
                         }
                     } else {
                         response = "{ \"type\": \"error\", \"message\": \"Failed to join game\" }";
@@ -282,6 +297,8 @@ void Server::stop()
         delete pair.second;
     }
     gameSessions.clear();
+  
+    gameCodes.clear();
 
     std::cout << "Server stopped" << std::endl;
 }
@@ -543,12 +560,25 @@ int Server::createGameSession(const std::string &player1Id)
 {
     std::lock_guard<std::mutex> lock(sessionsMutex);
 
+    // create invite code
+    static const char alphanum[] =
+    "0123456789"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz";
+    std::string inviteCode;
+    inviteCode.reserve(8);
+
+    for (int i = 0; i < 8; ++i) {
+        inviteCode += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
     // Create a new game session
     int sessionId = nextSessionId++;
-    GameSession *session = new GameSession(sessionId, player1Id);
+    GameSession *session = new GameSession(inviteCode, sessionId, player1Id);
 
     // Store it
     gameSessions[sessionId] = session;
+    gameCodes[sessionId] = inviteCode;
 
     return sessionId;
 }
