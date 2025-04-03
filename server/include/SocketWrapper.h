@@ -5,7 +5,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#pragma comment(lib, "ws2_32.lib")
+//#pragma comment(lib, "ws2_32.lib")
 typedef SOCKET socket_t;
 #define SOCKET_ERROR_VALUE INVALID_SOCKET
 #define SOCKET_CLOSE(s) closesocket(s)

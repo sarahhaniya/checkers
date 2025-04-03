@@ -27,9 +27,7 @@
 
  #ifndef WEBSOCKETPP_TRANSPORT_ASIO_HPP
  #define WEBSOCKETPP_TRANSPORT_ASIO_HPP
- 
- #include <boost/asio/executor_work_guard.hpp>
- 
+  
  #include "../base/endpoint.hpp"
 #include "./connection.hpp"
 #include "./security/none.hpp"
@@ -39,7 +37,7 @@
 
 #include "../../common/asio.hpp"
 #include "../../common/functional.hpp"
-
+ 
  #include <sstream>
  #include <string>
  
@@ -89,7 +87,7 @@
      typedef lib::shared_ptr<lib::asio::steady_timer> timer_ptr;
      /// Type of a shared pointer to an io_service work object
      typedef lib::shared_ptr<
-         lib::asio::executor_work_guard<boost::asio::io_context::executor_type>>
+         lib::asio::executor_work_guard<lib::asio::io_context::executor_type>>
          work_ptr;
  
      /// Type of socket pre-bind handler
@@ -98,11 +96,11 @@
      using clk = lib::chrono::steady_clock;
      // generate and manage our own io_service
      explicit endpoint()
-         : m_io_service(NULL)
-         , m_external_io_service(false)
-         , m_listen_backlog(lib::asio::socket_base::max_listen_connections)
-         , m_reuse_addr(false)
-         , m_state(UNINITIALIZED)
+       : m_io_service(NULL)
+       , m_external_io_service(false)
+       , m_listen_backlog(lib::asio::socket_base::max_listen_connections)
+       , m_reuse_addr(false)
+       , m_state(UNINITIALIZED)
      {
          //std::cout << "transport::asio::endpoint constructor" << std::endl;
      }
@@ -133,18 +131,18 @@
  #endif // _WEBSOCKETPP_DEFAULT_DELETE_FUNCTIONS_
  
  #ifdef _WEBSOCKETPP_MOVE_SEMANTICS_
-     endpoint(endpoint&& src)
-         : config::socket_type(std::move(src))
-         , m_tcp_pre_init_handler(src.m_tcp_pre_init_handler)
-         , m_tcp_post_init_handler(src.m_tcp_post_init_handler)
-         , m_io_service(src.m_io_service)
-         , m_external_io_service(src.m_external_io_service)
-         , m_acceptor(src.m_acceptor)
-         , m_listen_backlog(lib::asio::socket_base::max_listen_connections)
-         , m_reuse_addr(src.m_reuse_addr)
-         , m_elog(src.m_elog)
-         , m_alog(src.m_alog)
-         , m_state(src.m_state)
+     endpoint (endpoint && src)
+       : config::socket_type(std::move(src))
+       , m_tcp_pre_init_handler(src.m_tcp_pre_init_handler)
+       , m_tcp_post_init_handler(src.m_tcp_post_init_handler)
+       , m_io_service(src.m_io_service)
+       , m_external_io_service(src.m_external_io_service)
+       , m_acceptor(src.m_acceptor)
+       , m_listen_backlog(lib::asio::socket_base::max_listen_connections)
+       , m_reuse_addr(src.m_reuse_addr)
+       , m_elog(src.m_elog)
+       , m_alog(src.m_alog)
+       , m_state(src.m_state)
      {
          src.m_io_service = NULL;
          src.m_external_io_service = false;
@@ -164,7 +162,7 @@
              rhs.m_io_service = NULL;
              rhs.m_external_io_service = false;
              rhs.m_acceptor = NULL;
-             rhs.m_listen_backlog = lib::asio::socket_base::max_listen_connections;
+             rhs.m_listen_backlog = lib::asio::socket_base::max_connections;
              rhs.m_state = UNINITIALIZED;
              
              // TODO: this needs to be updated
@@ -206,7 +204,6 @@
          ec = lib::error_code();
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// initialize asio transport with external io_service
      /**
       * Initialize the ASIO transport policy for this endpoint using the provided
@@ -220,7 +217,6 @@
          init_asio(ptr,ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      /// Initialize asio transport with internal io_service (exception free)
      /**
@@ -246,7 +242,6 @@
          m_external_io_service = false;
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// Initialize asio transport with internal io_service
      /**
       * This method of initialization will allocate and use an internally managed
@@ -269,7 +264,6 @@
          service.release();
          m_external_io_service = false;
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      /// Sets the tcp pre bind handler
      /**
@@ -339,7 +333,7 @@
       *
       * New values affect future calls to listen only.
       *
-      * The default value is specified as *::asio::socket_base::max_listen_connections
+      * The default value is specified as *::asio::socket_base::max_connections
       * which uses the operating system defined maximum queue length. Your OS
       * may restrict or silently lower this value. A value of zero may cause
       * all connections to be rejected.
@@ -458,6 +452,20 @@
          ec = lib::error_code();
      }
  
+ 
+ 
+     /// Set up endpoint for listening manually
+     /**
+      * Bind the internal acceptor using the settings specified by the endpoint e
+      *
+      * @param ep An endpoint to read settings from
+      */
+     void listen(lib::asio::ip::tcp::endpoint const & ep) {
+         lib::error_code ec;
+         listen(ep,ec);
+         if (ec) { throw exception(ec); }
+     }
+ 
      /// Set up endpoint for listening with protocol and port (exception free)
      /**
       * Bind the internal acceptor using the given internet protocol and port.
@@ -480,108 +488,6 @@
          listen(ep,ec);
      }
  
-     /// Set up endpoint for listening on a port (exception free)
-     /**
-      * Bind the internal acceptor using the given port. The IPv6 protocol with
-      * mapped IPv4 for dual stack hosts will be used. If you need IPv4 only use
-      * the overload that allows specifying the protocol explicitly.
-      *
-      * The endpoint must have been initialized by calling init_asio before
-      * listening.
-      *
-      * @param port The port to listen on.
-      * @param ec Set to indicate what error occurred, if any.
-      */
-     void listen(uint16_t port, lib::error_code & ec) {
-         listen(lib::asio::ip::tcp::v6(), port, ec);
-     }
- 
-     /// Set up endpoint for listening on a host and service (exception free)
-     /**
-      * Bind the internal acceptor using the given host and service. More details
-      * about what host and service can be are available in the Asio
-      * documentation for ip::basic_resolver_query::basic_resolver_query's
-      * constructors.
-      *
-      * The endpoint must have been initialized by calling init_asio before
-      * listening.
-      *
-      * Once listening the underlying io_service will be kept open indefinitely.
-      * Calling endpoint::stop_listening will stop the endpoint from accepting
-      * new connections. See the documentation for stop listening for more details
-      * about shutting down Asio Transport based endpoints.
-      *
-      * @see stop_listening(lib::error_code &)
-      *
-      * @param host A string identifying a location. May be a descriptive name or
-      * a numeric address string.
-      * @param service A string identifying the requested service. This may be a
-      * descriptive name or a numeric string corresponding to a port number.
-      * @param ec Set to indicate what error occurred, if any.
-      */
- #if BOOST_VERSION < 108700
-     void listen(std::string const & host, std::string const & service,
-         lib::error_code & ec)
-     {
-         using lib::asio::ip::tcp;
-         tcp::resolver r(*m_io_service);
-         tcp::resolver::query query(host, service);
-         tcp::resolver::iterator endpoint_iterator = r.resolve(query);
-         tcp::resolver::iterator end;
-         if (endpoint_iterator == end) {
-             m_elog->write(log::elevel::library,
-                 "asio::listen could not resolve the supplied host or service");
-             ec = make_error_code(error::invalid_host_service);
-             return;
-         }
-         listen(*endpoint_iterator,ec);
-     }
- #endif
- 
-     /// Stop listening (exception free)
-     /**
-      * Stop listening and accepting new connections.
-      *
-      * If the endpoint needs to shut down fully (i.e. close all connections)
-      * this member function is necessary but not sufficient. In addition to
-      * stopping listening, individual connections will need to be ended via 
-      * their respective connection::close.
-      *
-      * For more details on clean closing, please refer to @ref clean_close
-      * "Cleanly closing Asio Transport based endpoints"
-      *
-      * @since 0.3.0-alpha4
-      * @param ec A status code indicating an error, if any.
-      */
-     void stop_listening(lib::error_code & ec) {
-         if (m_state != LISTENING) {
-             m_elog->write(log::elevel::library,
-                 "asio::listen called from the wrong state");
-             using websocketpp::error::make_error_code;
-             ec = make_error_code(websocketpp::error::invalid_state);
-             return;
-         }
- 
-         m_acceptor->close();
-         m_state = READY;
-         ec = lib::error_code();
-     }
- 
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
-     // if exceptions are avaliable, define listen overloads that use them
- 
-     /// Set up endpoint for listening manually
-     /**
-      * Bind the internal acceptor using the settings specified by the endpoint e
-      *
-      * @param ep An endpoint to read settings from
-      */
-     void listen(lib::asio::ip::tcp::endpoint const & ep) {
-         lib::error_code ec;
-         listen(ep,ec);
-         if (ec) { throw exception(ec); }
-     }
- 
      /// Set up endpoint for listening with protocol and port
      /**
       * Bind the internal acceptor using the given internet protocol and port.
@@ -602,6 +508,22 @@
          listen(ep);
      }
  
+     /// Set up endpoint for listening on a port (exception free)
+     /**
+      * Bind the internal acceptor using the given port. The IPv6 protocol with
+      * mapped IPv4 for dual stack hosts will be used. If you need IPv4 only use
+      * the overload that allows specifying the protocol explicitly.
+      *
+      * The endpoint must have been initialized by calling init_asio before
+      * listening.
+      *
+      * @param port The port to listen on.
+      * @param ec Set to indicate what error occurred, if any.
+      */
+     void listen(uint16_t port, lib::error_code & ec) {
+         listen(lib::asio::ip::tcp::v6(), port, ec);
+     }
+ 
      /// Set up endpoint for listening on a port
      /**
       * Bind the internal acceptor using the given port. The IPv6 protocol with
@@ -618,25 +540,55 @@
          listen(lib::asio::ip::tcp::v6(), port);
      }
  
-     /// Set up endpoint for listening on a host and service
+     /// Set up endpoint for listening on a host and service (exception free)
      /**
-      * Bind the internal acceptor using the given host and service. More 
-      * details about what host and service can be are available in the Asio
+      * Bind the internal acceptor using the given host and service. More details
+      * about what host and service can be are available in the Asio
       * documentation for ip::basic_resolver_query::basic_resolver_query's
       * constructors.
       *
       * The endpoint must have been initialized by calling init_asio before
       * listening.
       *
-      * Once listening the underlying io_service will be kept open indefinitely.
-      * Calling endpoint::stop_listening will stop the endpoint from accepting
-      * new connections. See the documentation for stop listening for more
-      * details about shutting down Asio Transport based endpoints.
+      * @param host A string identifying a location. May be a descriptive name or
+      * a numeric address string.
+      * @param service A string identifying the requested service. This may be a
+      * descriptive name or a numeric string corresponding to a port number.
+      * @param ec Set to indicate what error occurred, if any.
+      */
+
+      // do i need this?????
+//  #if BOOST_VERSION < 108700
+//      void listen(std::string const & host, std::string const & service,
+//          lib::error_code & ec)
+//      {
+//          using lib::asio::ip::tcp;
+//          lib::asio::ip::basic_resolver<lib::asio::ip::tcp> r(*m_io_service);
+//          lib::asio::ip::basic_resolver_query<lib::asio::ip::tcp> query(host, service);
+//          lib::asio::ip::basic_resolver_iterator<lib::asio::ip::tcp> endpoint_iterator = r.resolve(query);
+//          lib::asio::ip::basic_resolver_iterator<lib::asio::ip::tcp> end;
+//          if (endpoint_iterator == end) {
+//              m_elog->write(log::elevel::library,
+//                  "asio::listen could not resolve the supplied host or service");
+//              ec = make_error_code(error::invalid_host_service);
+//              return;
+//          }
+//          listen(*endpoint_iterator,ec);
+//      }
+//  #endif
+ 
+     /// Set up endpoint for listening on a host and service
+     /**
+      * Bind the internal acceptor using the given host and service. More details
+      * about what host and service can be are available in the Asio
+      * documentation for ip::basic_resolver_query::basic_resolver_query's
+      * constructors.
       *
-      * @see stop_listening()
+      * The endpoint must have been initialized by calling init_asio before
+      * listening.
       *
-      * @param host A string identifying a location. May be a descriptive name 
-      * or a numeric address string.
+      * @param host A string identifying a location. May be a descriptive name or
+      * a numeric address string.
       * @param service A string identifying the requested service. This may be a
       * descriptive name or a numeric string corresponding to a port number.
       * @param ec Set to indicate what error occurred, if any.
@@ -646,6 +598,28 @@
          lib::error_code ec;
          listen(host,service,ec);
          if (ec) { throw exception(ec); }
+     }
+ 
+     /// Stop listening (exception free)
+     /**
+      * Stop listening and accepting new connections. This will not end any
+      * existing connections.
+      *
+      * @since 0.3.0-alpha4
+      * @param ec A status code indicating an error, if any.
+      */
+     void stop_listening(lib::error_code & ec) {
+         if (m_state != LISTENING) {
+             m_elog->write(log::elevel::library,
+                 "asio::listen called from the wrong state");
+             using websocketpp::error::make_error_code;
+             ec = make_error_code(websocketpp::error::invalid_state);
+             return;
+         }
+ 
+         m_acceptor->close();
+         m_state = READY;
+         ec = lib::error_code();
      }
  
      /// Stop listening
@@ -660,7 +634,6 @@
          stop_listening(ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  
      /// Check if the endpoint is listening
      /**
@@ -722,7 +695,7 @@
       */
      void start_perpetual() {
        m_work.reset(
-           new lib::asio::executor_work_guard<boost::asio::io_context::executor_type>(
+           new lib::asio::executor_work_guard<lib::asio::io_context::executor_type>(
                m_io_service->get_executor()));
      }
  
@@ -812,7 +785,7 @@
  
          m_alog->write(log::alevel::devel, "asio::async_accept");
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              m_acceptor->async_accept(
                  tcon->get_raw_socket(),
                  tcon->get_strand()->wrap(lib::bind(
@@ -835,7 +808,6 @@
          }
      }
  
- #ifndef _WEBSOCKETPP_NO_EXCEPTIONS_
      /// Accept the next connection attempt and assign it to con.
      /**
       * @param tcon The connection to accept into.
@@ -846,7 +818,6 @@
          async_accept(tcon,callback,ec);
          if (ec) { throw exception(ec); }
      }
- #endif // _WEBSOCKETPP_NO_EXCEPTIONS_
  protected:
      /// Initialize logging
      /**
@@ -921,7 +892,7 @@
              port = pu->get_port_str();
          }
  
-         boost::asio::ip::basic_resolver_query<boost::asio::ip::tcp> query(host,port);
+         lib::asio::ip::basic_resolver_query<lib::asio::ip::tcp> query(host,port);
  
          if (m_alog->static_test(log::alevel::devel)) {
              m_alog->write(log::alevel::devel,
@@ -941,9 +912,9 @@
              )
          );
  
-         if constexpr (config::enable_multithreading) {
+         if (config::enable_multithreading) {
              m_resolver->async_resolve(
-                 query.host_name(), query.service_name(),
+                 query,
                  tcon->get_strand()->wrap(lib::bind(
                      &type::handle_resolve,
                      this,
@@ -956,7 +927,7 @@
              );
          } else {
              m_resolver->async_resolve(
-               query.host_name(), query.service_name(),
+                 query,
                  lib::bind(
                      &type::handle_resolve,
                      this,
@@ -1002,10 +973,9 @@
          callback(ret_ec);
      }
  
- 
      void handle_resolve(transport_con_ptr tcon, timer_ptr dns_timer,
          connect_handler callback, lib::asio::error_code const & ec,
-         boost::asio::ip::basic_resolver_results<boost::asio::ip::tcp> iterator)
+         lib::asio::ip::basic_resolver_results<lib::asio::ip::tcp> iterator)
      {
        if(ec == lib::asio::error::operation_aborted
           || lib::asio::is_neg(dns_timer->expiry() - clk::now()))
@@ -1048,7 +1018,7 @@
              )
          );
  
-         if constexpr(config::enable_multithreading) {
+         if (config::enable_multithreading) {
              lib::asio::async_connect(
                  tcon->get_raw_socket(),
                  iterator,

@@ -120,7 +120,7 @@ int main()
 
     testBlackPieceMoves();
     // Kill any previous instances of the server
-    killPreviousInstances();
+   // killPreviousInstances();
 
     // Create a server starting at port 8080 with 4 worker threads
     Server server(8080, 4);

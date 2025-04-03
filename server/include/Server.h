@@ -9,7 +9,10 @@
 #include <atomic>
 #include <unordered_map>
 #include "SocketWrapper.h"
+#define _WEBSOCKETPP_CPP11_THREAD_
 
+#define ASIO_STANDALONE
+#include "../asio/asio/include/asio.hpp"
 #include "../websocketpp/websocketpp/server.hpp"
 #include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
 
