@@ -52,6 +52,9 @@ private:
     // Map to track WebSocket connections to client IDs
     std::map<websocketpp::connection_hdl, std::string, std::owner_less<websocketpp::connection_hdl>> wsConnections;
 
+    // User database: username -> (email, password)
+std::unordered_map<std::string, std::pair<std::string, std::string>> registeredUsers;
+
 public:
     Server(int port, int numThreads);
     ~Server();

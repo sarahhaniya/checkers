@@ -189,24 +189,40 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
             // Format: LOGIN username password
             size_t firstSpace = message.find(" ");
             size_t secondSpace = message.find(" ", firstSpace + 1);
-            
+        
             if (firstSpace != std::string::npos && secondSpace != std::string::npos) {
                 std::string username = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
                 std::string password = message.substr(secondSpace + 1);
-                
-                // verify password here
-                //...
-                
-                wsConnections[hdl] = username;
-                response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
+        
+                if (registeredUsers.count(username) && registeredUsers[username].second == password) {
+                    wsConnections[hdl] = username;
+                    response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
+                } else {
+                    response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
+                }
             } else {
                 response = "{ \"type\": \"error\", \"message\": \"Invalid login format\" }";
             }
         } else if (upperMessage.find("REGISTER") == 0) {
             // Format: REGISTER email username password
-            // Parse and handle registration
-            // ...
-            response = "{ \"type\": \"register_success\" }";
+            size_t firstSpace = message.find(" ");
+            size_t secondSpace = message.find(" ", firstSpace + 1);
+            size_t thirdSpace = message.find(" ", secondSpace + 1);
+        
+            if (firstSpace != std::string::npos && secondSpace != std::string::npos && thirdSpace != std::string::npos) {
+                std::string email = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
+                std::string username = message.substr(secondSpace + 1, thirdSpace - secondSpace - 1);
+                std::string password = message.substr(thirdSpace + 1);
+        
+                if (registeredUsers.count(username)) {
+                    response = "{ \"type\": \"error\", \"message\": \"Username already registered\" }";
+                } else {
+                    registeredUsers[username] = { email, password };
+                    response = "{ \"type\": \"register_success\" }";
+                }
+            } else {
+                response = "{ \"type\": \"error\", \"message\": \"Invalid register format\" }";
+            }
         } else if (upperMessage.find("CREATE") == 0) {
             // Check if user is logged in
             std::string clientId = wsConnections[hdl];
@@ -616,3 +632,4 @@ void Server::closeSocket(socket_t socket)
 {
     SocketWrapper::closeSocket(socket);
 }
+
