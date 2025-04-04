@@ -1,9 +1,5 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 
 .logo {
   height: 6em;
@@ -39,4 +35,42 @@
 
 .read-the-docs {
   color: #888;
+}
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #ff3c3c;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #e53935;
+  box-shadow: 0 0 5px #e53935;
+  transition: all 0.2s ease-in-out;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #888;
 }

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
 import Board from "./components/Board";
+import "./App.css"; // <- add this line to handle custom styles
+
 
 function App() {
   const {
@@ -14,24 +16,21 @@ function App() {
     gameStatus,
     messages,
     updateFromServer,
-    makeMove
+    makeMove,
   } = useGameState();
 
   const memoizedUpdateFromServer = useCallback(updateFromServer, [updateFromServer]);
   const { sendMessage, status } = useWebSocket("http://localhost:8080", memoizedUpdateFromServer);
 
-  const [view, setView] = useState("login"); // 'login', 'register', 'lobby', 'game'
+  const [view, setView] = useState("login");
   const [gameIdInput, setGameIdInput] = useState("");
 
-  // Login state
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Register state
   const [regEmail, setRegEmail] = useState("");
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
-
 
   const handleLogin = () => {
     if (loginUsername && loginPassword) {
@@ -45,9 +44,7 @@ function App() {
     }
   };
 
-  const handleCreateGame = () => {
-    sendMessage("create");
-  };
+  const handleCreateGame = () => sendMessage("create");
 
   const handleJoinGame = () => {
     if (gameIdInput) {
@@ -60,182 +57,218 @@ function App() {
     sendMessage(`move ${fromX} ${fromY} ${toX} ${toY}`);
   };
 
-    // Handle successful login/game join
-    useEffect(() => {
-      if (player && !gameId) {
-        setView("lobby");
-      } else if (gameId) {
-        setView("game");
-      }
-    }, [player, gameId]);
+  useEffect(() => {
+    if (player && !gameId) {
+      setView("lobby");
+    } else if (gameId) {
+      setView("game");
+    }
+  }, [player, gameId]);
+
+  const styles = {
+    wrapper: {
+      background: "linear-gradient(135deg, #0f0f0f, #1c1c1c)",
+      backgroundSize: "200% 200%",
+      animation: "gradientMove 10s ease infinite",
+      minHeight: "100vh",
+      width: "100vw",
+      color: "#f0f0f0",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      fontFamily: "'Press Start 2P', cursive",
+      padding: "1rem",
+    },
+    card: {
+      backgroundColor: "#2a2a2a",
+      padding: "2rem",
+      borderRadius: "1.5rem",
+      boxShadow: "0 0 30px rgba(255, 0, 0, 0.2)",
+      width: "100%",
+      maxWidth: "800px",
+      minHeight: "90vh", // take most of the page vertically
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      border: "2px solid #e53935",
+    },
+    
+    title: {
+      textAlign: "center",
+      fontSize: "2.2rem",
+      marginBottom: "2rem",
+      color: "#ff5252",
+      textShadow: "0 0 5px #e53935",
+    },
+    input: {
+      width: "45%",
+      padding: "0.75rem",
+      marginBottom: "1rem",
+      backgroundColor: "#1e1e1e",
+      color: "#f8f8f8",
+      border: "2px solid #444",
+      borderRadius: "10px",
+      fontSize: "0.85rem",
+      marginLeft: "auto",   // center horizontally
+      marginRight: "auto",  // center horizontally
+    },
+    button: {
+      width: "30%",
+      padding: "0.8rem",
+      backgroundColor: "#e53935",
+      border: "2px solid #ff6b6b",
+      borderRadius: "10px",
+      color: "#fff",
+      fontWeight: "bold",
+      cursor: "pointer",
+      transition: "0.3s ease",
+      marginBottom: "1rem",
+      fontSize: "0.9rem",
+      marginLeft: "auto",   // center horizontally
+      marginRight: "auto",  // center horizontally
+    },
+    toggleBtn: (active) => ({
+      padding: "0.7rem 1.5rem",
+      backgroundColor: active ? "#e53935" : "#333",
+      color: "#fff",
+      border: "2px solid #444",
+      borderRadius: "10px",
+      cursor: "pointer",
+      marginRight: "0.5rem",
+      fontSize: "1rem",
+      boxShadow: active ? "0 0 10px #ff4444" : "none",
+    }),
+    messageBox: {
+      backgroundColor: "#1e1e1e",
+      padding: "1rem",
+      borderRadius: "1rem",
+      marginTop: "2rem",
+      maxHeight: "150px",
+      overflowY: "auto",
+      border: "1px solid #444",
+    },
+  };
+  
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "Arial", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>🕹️ Checkers Game</h1>
+    <div style={styles.wrapper}>
+      <div style={styles.card}>
+        <h1 style={styles.title}>Checkers</h1>
 
-      {/* LOGIN/REGISTER VIEW */}
-      {(view === "login" || view === "register") && (
-        <>
-          {/* TAB SWITCHER */}
-          <div style={{ marginBottom: "1rem" }}>
-            <button 
-              onClick={() => setView("login")} 
-              style={{
-                padding: "0.5rem 1rem",
-                marginRight: "0.5rem",
-                backgroundColor: view === "login" ? "indianred" : "#f1f1f1"
-              }}
-            >
-              Login
-            </button>
-            <button 
-              onClick={() => setView("register")} 
-              style={{
-                padding: "0.5rem 1rem",
-                backgroundColor: view === "register" ? "indianred" : "#f1f1f1" 
-              }}
-            >
-              Create Account
-            </button>
-          </div>
-
-          {/* LOGIN FORM */}
-          {view === "login" && (
-            <div style={{ marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <h2>Login</h2>
-              <input
-                type="text"
-                placeholder="Username"
-                value={loginUsername}
-                onChange={(e) => setLoginUsername(e.target.value)}
-                style={{ padding: "0.5rem" }}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                style={{ padding: "0.5rem" }}
-              />
-              <button 
-                onClick={handleLogin}
-                style={{ padding: "0.5rem", backgroundColor: "indianred", color: "white" }}
-              >
-                Login
-              </button>
-            </div>
-          )}
-
-          {/* REGISTER FORM */}
-          {view === "register" && (
-            <div style={{ marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <h2>Create Account</h2>
-              <input
-                type="email"
-                placeholder="Email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                style={{ padding: "0.5rem" }}
-              />
-              <input
-                type="text"
-                placeholder="Username"
-                value={regUsername}
-                onChange={(e) => setRegUsername(e.target.value)}
-                style={{ padding: "0.5rem" }}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                style={{ padding: "0.5rem" }}
-              />
-              <button 
-                onClick={handleRegister}
-                style={{ padding: "0.5rem", backgroundColor: "indianred", color: "white" }}
-              >
-                Register
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* LOBBY VIEW */}
-      {view === "lobby" && (
-        <div>
-          <h2>Welcome, {player}!</h2>
-          
-          <div style={{ marginBottom: "1rem", padding: "1rem", backgroundColor: "#f1f1f1", borderRadius: "4px" }}>
-            <h3>Create Game</h3>
-            <button 
-              onClick={handleCreateGame}
-              style={{ padding: "0.5rem 1rem", backgroundColor: "indianred", color: "white" }}
-            >
-              Create New Game
-            </button>
-          </div>
-
-          <div style={{ marginBottom: "1rem", padding: "1rem", backgroundColor: "#f1f1f1", borderRadius: "4px" }}>
-            <h3>Join Game</h3>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <input
-                type="text"
-                placeholder="Enter Game ID"
-                value={gameIdInput}
-                onChange={(e) => setGameIdInput(e.target.value)}
-                style={{ padding: "0.5rem", flexGrow: 1 }}
-              />
-              <button 
-                onClick={handleJoinGame}
-                style={{ padding: "0.5rem 1rem", backgroundColor: "indianred", color: "white" }}
-              >
-                Join
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* GAME VIEW */}
-      {view === "game" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <h2>Game Invite Code: {gameId}</h2>
-            <div>
-              {gameStatus === "playing" ? (
-                <span style={{ fontWeight: "bold" }}>
-                  Current turn: {currentPlayer === player ? "Your turn" : `${currentPlayer}'s turn`}
-                </span>
-              ) : (
-                <span>Game completed</span>
-              )}
-            </div>
-          </div>
-          
-          <Board 
-            board={board} 
-            currentPlayer={currentPlayer}
-            isMyTurn={currentPlayer === player}
-            onMove={handleMakeMove}
-          />
-          
-          <button 
-            onClick={() => { setGameId(null); setView("lobby"); }}
-            style={{ marginTop: "1rem", padding: "0.5rem 1rem" }}
-          >
-            Return to Lobby
+        {/* TAB SWITCHER */}
+        <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+          <button style={styles.toggleBtn(view === "login")} onClick={() => setView("login")}>
+            Login
+          </button>
+          <button style={styles.toggleBtn(view === "register")} onClick={() => setView("register")}>
+            Register
           </button>
         </div>
-      )}
 
-      {/* MESSAGE LOG */}
-      <div style={{ marginTop: "2rem", backgroundColor: "#f1f1f1", padding: "1rem", borderRadius: "4px" }}>
-        <h3>Messages</h3>
-        <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+        {/* LOGIN FORM */}
+        {view === "login" && (
+          <>
+            <input
+              style={styles.input}
+              placeholder="Username"
+              value={loginUsername}
+              onChange={(e) => setLoginUsername(e.target.value)}
+            />
+            <input
+              type="password"
+              style={styles.input}
+              placeholder="Password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+            />
+            <button style={styles.button} onClick={handleLogin}>
+              Login
+            </button>
+          </>
+        )}
+
+        {/* REGISTER FORM */}
+        {view === "register" && (
+          <>
+            <input
+              style={styles.input}
+              placeholder="Email"
+              value={regEmail}
+              onChange={(e) => setRegEmail(e.target.value)}
+            />
+            <input
+              style={styles.input}
+              placeholder="Username"
+              value={regUsername}
+              onChange={(e) => setRegUsername(e.target.value)}
+            />
+            <input
+              type="password"
+              style={styles.input}
+              placeholder="Password"
+              value={regPassword}
+              onChange={(e) => setRegPassword(e.target.value)}
+            />
+            <button style={styles.button} onClick={handleRegister}>
+              Register
+            </button>
+          </>
+        )}
+
+        {/* LOBBY */}
+        {view === "lobby" && (
+          <>
+            <h2 style={{ marginBottom: "1rem" }}>Welcome, {player}!</h2>
+            <button style={styles.button} onClick={handleCreateGame}>
+              Create Game
+            </button>
+            <input
+              style={styles.input}
+              placeholder="Enter Game ID"
+              value={gameIdInput}
+              onChange={(e) => setGameIdInput(e.target.value)}
+            />
+            <button style={styles.button} onClick={handleJoinGame}>
+              Join Game
+            </button>
+          </>
+        )}
+
+        {/* GAME */}
+        {view === "game" && (
+          <>
+            <h2>Game ID: {gameId}</h2>
+            <p>
+              {gameStatus === "playing"
+                ? `Current turn: ${currentPlayer === player ? "Your turn" : currentPlayer + "'s turn"}`
+                : "Game over"}
+            </p>
+            <Board
+              board={board}
+              currentPlayer={currentPlayer}
+              isMyTurn={currentPlayer === player}
+              onMove={handleMakeMove}
+            />
+            <button
+              style={{ ...styles.button, backgroundColor: "#555" }}
+              onClick={() => {
+                setGameId(null);
+                setView("lobby");
+              }}
+            >
+              Back to Lobby
+            </button>
+          </>
+        )}
+
+        {/* MESSAGES */}
+        <div style={styles.messageBox}>
+          <h3 style={{ marginBottom: "0.5rem" }}>Messages</h3>
           {messages.map((msg, i) => (
-            <div key={i} style={{ marginBottom: "0.5rem" }}>{msg}</div>
+            <div key={i} style={{ fontSize: "0.9rem", marginBottom: "0.3rem" }}>
+              {msg}
+            </div>
           ))}
         </div>
       </div>
