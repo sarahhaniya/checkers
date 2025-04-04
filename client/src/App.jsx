@@ -39,10 +39,18 @@ function App() {
   };
 
   const handleRegister = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+    if (!emailRegex.test(regEmail)) {
+      alert("Please enter a valid email address (e.g. name@email.com)");
+      return;
+    }
+  
     if (regEmail && regUsername && regPassword) {
       sendMessage(`register ${regEmail} ${regUsername} ${regPassword}`);
     }
   };
+  
 
   const handleCreateGame = () => sendMessage("create");
 

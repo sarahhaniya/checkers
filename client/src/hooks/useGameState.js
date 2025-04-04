@@ -61,9 +61,11 @@ const useGameState = () => {
           }
           break;
 
-        case "error":
-          setMessages((prev) => [...prev, `Error: ${response.message}`]);
-          break;
+          case "error":
+            setMessages((prev) => [...prev, `Error: ${response.message}`]);
+            alert(`Error: ${response.message}`);
+            break;
+          
 
         default:
           setMessages((prev) => [...prev, `Received: ${data}`]);
@@ -99,3 +101,5 @@ const useGameState = () => {
 };
 
 export default useGameState;
+
+
