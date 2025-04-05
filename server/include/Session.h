@@ -22,12 +22,13 @@ class GameSession
 {
 private:
     int sessionId;
+    std::string inviteCode;  // Move this before player1Id
     std::string player1Id;
     std::string player2Id;
-    std::vector<socket_t> clientSockets; // Changed from int to socket_t
+    std::vector<socket_t> clientSockets;
     bool gameStarted;
 
-    Board gameBoard; // The checkers board
+    Board gameBoard; 
     std::atomic<bool> isPlayer1Turn;
     std::mutex gameMutex;
 
@@ -35,18 +36,21 @@ private:
     void logMutexAcquire(const std::string &methodName);
     void logMutexRelease(const std::string &methodName);
 
+    // Public WebSocketServer type
     typedef websocketpp::server<websocketpp::config::asio> WebSocketServer;
+    
+public:
     std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>> wsConnections;
 
-public:
     GameSession(std::string inviteCode, int id, const std::string &p1Id);
     ~GameSession();
 
     bool joinGame(const std::string &p2Id);
     bool makeMove(const std::string &playerId, int fromX, int fromY, int toX, int toY);
-    std::string getBoardState() const; // Return serialized board state
+    std::string getBoardState() const;
+    std::string getBoardStateJson() const;
 
-    void addClientSocket(socket_t socket); // Changed from int to socket_t
+    void addClientSocket(socket_t socket);
     void broadcastGameState();
 
     int getSessionId() const { return sessionId; }
@@ -60,13 +64,11 @@ public:
     const Board &getGameBoard() const { return gameBoard; }
     bool checkForWinner();
 
-    // Add a method to add WebSocket handle
-    void addWebSocketHandle(websocketpp::connection_hdl hdl, WebSocketServer* server) {
-        wsConnections.push_back(std::make_pair(hdl, server));
-    }
-
-      // get JSON representation of board
-      std::string getBoardStateJson() const;
+    // Declarations that match the implementation
+    bool containsPlayer(const std::string& username) const;
+    std::string getWhitePlayer() const;
+    std::string getInviteCode() const;
+    void addWebSocketHandle(websocketpp::connection_hdl hdl, WebSocketServer* server);
 };
 
 #endif // SESSION_H

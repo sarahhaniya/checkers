@@ -8,6 +8,11 @@
 #include <cstring>
 #include <thread>
 #include <chrono>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <iomanip>
+
 
 void killPreviousInstances()
 {
@@ -33,15 +38,125 @@ Server::Server(int port, int numThreads)
     : port(port),
       serverSocket(SOCKET_ERROR_VALUE),
       running(false),
-      nextSessionId(1)
+      nextSessionId(1),
+      dbInitialized(false)
 {
     // Initialize socket library (Windows needs this)
     SocketWrapper::initialize();
 
     // Create the thread pool
     threadPool = new ThreadPool(numThreads);
+
+    dbInitialized = dbManager.initialize();
+if (!dbInitialized) {
+    std::cerr << "Warning: Database initialization failed" << std::endl;
+} else {
+    std::cout << "Database initialized successfully" << std::endl;
 }
 
+}
+
+class SHA256 {
+    public:
+    static inline unsigned int rotr(unsigned int x, unsigned int n) {
+        return (x >> n) | (x << (32 - n));
+    }
+        static std::string hash(const std::string &input);
+    private:
+        static constexpr unsigned int k[64] = {
+            0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
+            0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+            0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,
+            0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+            0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
+            0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+            0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+            0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+            0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,
+            0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+            0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,
+            0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+            0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,
+            0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+            0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
+            0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+        };
+    
+        static void transform(const unsigned char *message, unsigned int block_nb, unsigned int *digest);
+    };
+    
+    std::string SHA256::hash(const std::string &input) {
+        unsigned int h[8] = {
+            0x6a09e667,
+            0xbb67ae85,
+            0x3c6ef372,
+            0xa54ff53a,
+            0x510e527f,
+            0x9b05688c,
+            0x1f83d9ab,
+            0x5be0cd19
+        };
+    
+        std::vector<unsigned char> msg(input.begin(), input.end());
+        size_t original_len = msg.size();
+    
+        msg.push_back(0x80);
+        while ((msg.size() + 8) % 64 != 0) {
+            msg.push_back(0);
+        }
+    
+        uint64_t bit_len = original_len * 8;
+        for (int i = 7; i >= 0; --i)
+            msg.push_back((bit_len >> (i * 8)) & 0xFF);
+    
+        unsigned int w[64];
+        for (size_t i = 0; i < msg.size(); i += 64) {
+            for (int j = 0; j < 16; ++j)
+                w[j] = (msg[i + j * 4] << 24) | (msg[i + j * 4 + 1] << 16) |
+                       (msg[i + j * 4 + 2] << 8) | (msg[i + j * 4 + 3]);
+    
+            for (int j = 16; j < 64; ++j) {
+                unsigned int s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >> 3);
+                unsigned int s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >> 10);
+                w[j] = w[j - 16] + s0 + w[j - 7] + s1;
+            }
+    
+            unsigned int a = h[0], b = h[1], c = h[2], d = h[3];
+            unsigned int e = h[4], f = h[5], g = h[6], h_ = h[7];
+    
+            for (int j = 0; j < 64; ++j) {
+                unsigned int S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+                unsigned int ch = (e & f) ^ ((~e) & g);
+                unsigned int temp1 = h_ + S1 + ch + k[j] + w[j];
+                unsigned int S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+                unsigned int maj = (a & b) ^ (a & c) ^ (b & c);
+                unsigned int temp2 = S0 + maj;
+    
+                h_ = g;
+                g = f;
+                f = e;
+                e = d + temp1;
+                d = c;
+                c = b;
+                b = a;
+                a = temp1 + temp2;
+            }
+    
+            h[0] += a; h[1] += b; h[2] += c; h[3] += d;
+            h[4] += e; h[5] += f; h[6] += g; h[7] += h_;
+        }
+    
+        std::stringstream ss;
+        for (int i = 0; i < 8; ++i)
+            ss << std::hex << std::setw(8) << std::setfill('0') << h[i];
+    
+        return ss.str();
+    }
+
+    std::string hashPassword(const std::string& password) {
+        return SHA256::hash(password);
+    }
+    
 Server::~Server()
 {
     // Clean up resources
@@ -171,119 +286,158 @@ void Server::onWebSocketClose(websocketpp::connection_hdl hdl) {
     wsConnections.erase(hdl);
 }
 
+std::string Server::generateInviteCode() {
+    static const char alphanum[] =
+    "0123456789"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz";
+    std::string inviteCode;
+    inviteCode.reserve(8);
+
+    for (int i = 0; i < 8; ++i) {
+        inviteCode += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    
+    return inviteCode;
+}
+
+int Server::findSessionByInviteCode(const std::string& gameCode) {
+    for (const auto& [sessionId, code] : gameCodes) {
+        if (code == gameCode) {
+            return sessionId;
+        }
+    }
+    return -1; // Not found
+}
+
+bool Server::processGameMove(const std::string& username, int fromX, int fromY, int toX, int toY) {
+    // Find the game session for the user
+    for (auto& [sessionId, session] : gameSessions) {
+        if (session->containsPlayer(username)) {
+            // Attempt to make the move
+            bool moveResult = session->makeMove(username, fromX, fromY, toX, toY);
+            
+            // If move is successful, record it in the database
+            if (moveResult) {
+                // Determine if the move was by white or black player
+                bool isWhite = (session->getWhitePlayer() == username);
+                recordMove(sessionId, fromX, fromY, toX, toY, isWhite);
+                
+                // Save the updated game state
+                saveGameState(sessionId, session->getBoardState());
+            }
+            
+            return moveResult;
+        }
+    }
+    
+    return false; // No session found for the user
+}
+
 void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
     std::string message = msg->get_payload();
     std::cout << "Received WebSocket message: " << message << std::endl;
     
-    // Process commands similar to handleClientConnection
-    std::string upperMessage = message;
-    for (char &c : upperMessage) {
-        c = toupper(c);
-    }
+    // Convert to lowercase for case-insensitive matching
+    std::string lowerMessage = message;
+    std::transform(lowerMessage.begin(), lowerMessage.end(), lowerMessage.begin(), ::tolower);
     
     std::string response;
     
     try {
-        // Parse commands similar to your existing code
-        if (upperMessage.find("LOGIN") == 0) {
-            // Format: LOGIN username password
-            size_t firstSpace = message.find(" ");
-            size_t secondSpace = message.find(" ", firstSpace + 1);
+        // Parse the message
+        std::istringstream iss(message);
+        std::string command;
+        iss >> command;
+        std::transform(command.begin(), command.end(), command.begin(), ::tolower);
         
-            if (firstSpace != std::string::npos && secondSpace != std::string::npos) {
-                std::string username = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-                std::string password = message.substr(secondSpace + 1);
-        
-                if (registeredUsers.count(username) && registeredUsers[username].second == password) {
-                    wsConnections[hdl] = username;
-                    response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
-                } else {
-                    response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
-                }
+        if (command == "login") {
+            std::string username, password;
+            iss >> username >> password;
+            
+            if (authenticateUser(username, password)) {
+                // Store connection handle with username
+                wsConnections[hdl] = username;
+                response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
             } else {
-                response = "{ \"type\": \"error\", \"message\": \"Invalid login format\" }";
+                response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
             }
-        } else if (upperMessage.find("REGISTER") == 0) {
-            // Format: REGISTER email username password
-            size_t firstSpace = message.find(" ");
-            size_t secondSpace = message.find(" ", firstSpace + 1);
-            size_t thirdSpace = message.find(" ", secondSpace + 1);
-        
-            if (firstSpace != std::string::npos && secondSpace != std::string::npos && thirdSpace != std::string::npos) {
-                std::string email = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-                std::string username = message.substr(secondSpace + 1, thirdSpace - secondSpace - 1);
-                std::string password = message.substr(thirdSpace + 1);
-        
-                if (registeredUsers.count(username)) {
-                    response = "{ \"type\": \"error\", \"message\": \"Username already registered\" }";
-                } else {
-                    registeredUsers[username] = { email, password };
-                    response = "{ \"type\": \"register_success\" }";
-                }
+        }
+        else if (command == "register") {
+            std::string email, username, password;
+            iss >> email >> username >> password;
+            
+            if (registerUser(username, email, password)) {
+                response = "{ \"type\": \"register_success\", \"username\": \"" + username + "\" }";
             } else {
-                response = "{ \"type\": \"error\", \"message\": \"Invalid register format\" }";
+                response = "{ \"type\": \"error\", \"message\": \"Registration failed. Username may already exist.\" }";
             }
-        } else if (upperMessage.find("CREATE") == 0) {
+        }
+        else if (command == "create") {
             // Check if user is logged in
-            std::string clientId = wsConnections[hdl];
-            if (clientId != "Unknown") {
-                int gameSessionId = createGameSession(clientId);
-
-                   // Get the session and add this client's socket
-                   GameSession *session = getGameSession(gameSessionId);
-                   if (session)
-                   {
-                       session->addWebSocketHandle(hdl, &wsServer);
-                   }
-                
-                response = "{ \"type\": \"game_created\", \"gameCode\": \"" + gameCodes[gameSessionId] + "\" }";
-            } else {
+            std::string username = wsConnections[hdl];
+            if (username.empty() || username == "Unknown") {
                 response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
-            }
-        } else if (upperMessage.find("JOIN") == 0) {
-            // Format: JOIN gameId
-            size_t pos = message.find(" ");
-            if (pos != std::string::npos) {
-                std::string clientId = wsConnections[hdl];
-                if (clientId != "Unknown") {
-                    std::string code = message.substr(pos + 1);
-                    int sessionId = 0;
-                    for (const auto& [key, value] : gameCodes){
-                     if (value == code){
-                      sessionId = key;
-                     }
-                    }
-              
-                    if (joinGameSession(sessionId, clientId)) {
-                        GameSession* session = getGameSession(sessionId);
-                        if (session) {
-                            // Add WebSocket to notify for game updates
-                            session->addWebSocketHandle(hdl, &wsServer);
-                            session->broadcastGameState();
-
-                            // Get and send game state
-                            std::string boardState = session->getBoardStateJson();
-                            response = boardState;
-                        }
-                    } else {
-                        response = "{ \"type\": \"error\", \"message\": \"Failed to join game\" }";
-                    }
+            } else {
+                int gameSessionId = createGameSession(username);
+                if (gameSessionId > 0) {
+                    // Assuming you have a way to generate invite codes
+                    std::string inviteCode = generateInviteCode(); // You'll need to implement this
+                    response = "{ \"type\": \"game_created\", \"gameId\": \"" + std::to_string(gameSessionId) + 
+                               "\", \"gameCode\": \"" + inviteCode + "\" }";
                 } else {
-                    response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
+                    response = "{ \"type\": \"error\", \"message\": \"Failed to create game session\" }";
                 }
             }
         }
-        // Add other commands (MOVE, STATE, etc.)
-        
-    } catch (const std::exception& e) {
-        std::cerr << "Exception processing WebSocket command: " << e.what() << std::endl;
-        response = "{ \"type\": \"error\", \"message\": \"Server error processing command\" }";
+        else if (command == "join") {
+            std::string username = wsConnections[hdl];
+            std::string gameCode;
+            iss >> gameCode;
+            
+            if (username.empty() || username == "Unknown") {
+                response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
+            } else {
+                // You'll need to implement a method to find session by invite code
+                int sessionId = findSessionByInviteCode(gameCode);
+                if (sessionId > 0 && joinGameSession(sessionId, username)) {
+                    response = "{ \"type\": \"game_joined\", \"gameId\": \"" + std::to_string(sessionId) + 
+                               "\", \"gameCode\": \"" + gameCode + "\" }";
+                } else {
+                    response = "{ \"type\": \"error\", \"message\": \"Failed to join game\" }";
+                }
+            }
+        }
+        else if (command == "move") {
+            std::string username = wsConnections[hdl];
+            int fromX, fromY, toX, toY;
+            if (iss >> fromX >> fromY >> toX >> toY) {
+                // You'll need to implement game logic to validate and process the move
+                bool moveResult = processGameMove(username, fromX, fromY, toX, toY);
+                if (moveResult) {
+                    response = "{ \"type\": \"move_success\", \"from\": [" + 
+                               std::to_string(fromX) + "," + std::to_string(fromY) + "], \"to\": [" + 
+                               std::to_string(toX) + "," + std::to_string(toY) + "] }";
+                } else {
+                    response = "{ \"type\": \"error\", \"message\": \"Invalid move\" }";
+                }
+            } else {
+                response = "{ \"type\": \"error\", \"message\": \"Invalid move format\" }";
+            }
+        }
+        else {
+            response = "{ \"type\": \"error\", \"message\": \"Unknown command\" }";
+        }
+    }
+    catch (const std::exception& e) {
+        response = "{ \"type\": \"error\", \"message\": \"Server error: " + std::string(e.what()) + "\" }";
     }
     
     // Send response
     try {
         wsServer.send(hdl, response, websocketpp::frame::opcode::text);
-    } catch (const websocketpp::exception& e) {
+    }
+    catch (const websocketpp::exception& e) {
         std::cerr << "Failed to send WebSocket response: " << e.what() << std::endl;
     }
 }
@@ -572,11 +726,24 @@ void Server::handleClientConnection(socket_t clientSocket)
     std::cout << "Client disconnected: " << clientId << std::endl;
 }
 
-int Server::createGameSession(const std::string &player1Id)
-{
+int Server::createGameSession(const std::string &player1Id) {
     std::lock_guard<std::mutex> lock(sessionsMutex);
-
-    // create invite code
+    
+    int sessionId;
+    
+    // If database is initialized, let it generate the ID
+    if (dbInitialized) {
+        sessionId = dbManager.createGameSession(player1Id);
+        if (sessionId < 0) {
+            // Fall back to local ID generation if database fails
+            sessionId = nextSessionId++;
+        }
+    } else {
+        // Use local ID generation if no database
+        sessionId = nextSessionId++;
+    }
+    
+    // Generate invite code
     static const char alphanum[] =
     "0123456789"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -587,17 +754,61 @@ int Server::createGameSession(const std::string &player1Id)
     for (int i = 0; i < 8; ++i) {
         inviteCode += alphanum[rand() % (sizeof(alphanum) - 1)];
     }
-
-    // Create a new game session
-    int sessionId = nextSessionId++;
+    
+    // Create game session object with the correct constructor parameters
     GameSession *session = new GameSession(inviteCode, sessionId, player1Id);
-
-    // Store it
     gameSessions[sessionId] = session;
     gameCodes[sessionId] = inviteCode;
-
+    
+    std::cout << "Game session " << sessionId << " created with player: " << player1Id << std::endl;
     return sessionId;
 }
+
+bool Server::initializeDatabase() {
+    dbInitialized = dbManager.initialize();
+    return dbInitialized;
+}
+
+bool Server::registerUser(const std::string& username, const std::string& email, const std::string& password) {
+    if (!dbInitialized) return false;
+    
+    // Store in your existing map for compatibility
+    std::string hashedPassword = hashPassword(password);
+    registeredUsers[username] = std::make_pair(email, hashedPassword);
+    return dbManager.createUser(username, email, hashedPassword);
+    }
+
+    bool Server::authenticateUser(const std::string& username, const std::string& password) {
+        std::string hashedPassword = hashPassword(password);
+    
+        if (!dbInitialized) {
+            auto it = registeredUsers.find(username);
+            return (it != registeredUsers.end() && it->second.second == hashedPassword);
+        }
+    
+        return dbManager.validateUser(username, hashedPassword);
+    }
+    
+bool Server::saveGameState(int sessionId, const std::string& boardState) {
+    if (!dbInitialized) return false;
+    
+    std::cout << "Saving state: " << boardState << std::endl;
+    return dbManager.updateGameState(sessionId, boardState);
+}
+
+std::string Server::loadGameState(int sessionId) {
+    if (!dbInitialized) return "";
+    
+    std::string state = dbManager.getGameState(sessionId);
+    std::cout << "Loaded state: " << state << std::endl;
+    return state;
+}
+
+bool Server::recordMove(int sessionId, int fromX, int fromY, int toX, int toY, bool isWhite) {
+    if (!dbInitialized) return false;
+    return dbManager.recordMove(sessionId, fromX, fromY, toX, toY, isWhite);
+}
+
 
 bool Server::joinGameSession(int sessionId, const std::string &player2Id)
 {

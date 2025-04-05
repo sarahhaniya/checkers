@@ -5,11 +5,13 @@
 #include <sstream>
 
 GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id)
-    : sessionId(id),
-      player1Id(p1Id),
-      gameStarted(false),
-      gameBoard(), // Initialize a new board
-      isPlayer1Turn(true)
+    : inviteCode(inviteCode),
+    sessionId(id),
+    player1Id(p1Id),
+    player2Id(""),
+    gameStarted(false),
+    gameBoard(),
+    isPlayer1Turn(true)
 {
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
@@ -520,6 +522,22 @@ void GameSession::addClientSocket(socket_t socket)
 {
     std::lock_guard<std::mutex> lock(gameMutex);
     clientSockets.push_back(socket);
+}
+
+bool GameSession::containsPlayer(const std::string& username) const {
+    return player1Id == username || player2Id == username;
+}
+
+std::string GameSession::getWhitePlayer() const {
+    return player1Id;
+}
+
+std::string GameSession::getInviteCode() const {
+    return inviteCode;
+}
+
+void GameSession::addWebSocketHandle(websocketpp::connection_hdl hdl, WebSocketServer* server) {
+    wsConnections.push_back(std::make_pair(hdl, server));
 }
 
 bool GameSession::checkForWinner()

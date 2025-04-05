@@ -10,56 +10,91 @@
 #include "GameLogic/Move.h"
 #include "GameLogic/Typedefs.h"
 
-// Add this at the beginning of your main() function
-void testBlackPieceMoves()
-{
-    std::cout << "\n----- Testing Black Piece Moves -----\n"
-              << std::endl;
+// // Add this at the beginning of your main() function
+// void testBlackPieceMoves()
+// {
+//     std::cout << "\n----- Testing Black Piece Moves -----\n"
+//               << std::endl;
 
-    // Create a new board
-    Board board;
+//     // Create a new board
+//     Board board;
 
-    // Get a black piece
-    Piece *blackPiece = board.getValueAt(1, 5);
-    if (!blackPiece)
-    {
-        std::cout << "Error: No piece at (1,5)" << std::endl;
-        return;
-    }
+//     // Get a black piece
+//     Piece *blackPiece = board.getValueAt(1, 5);
+//     if (!blackPiece)
+//     {
+//         std::cout << "Error: No piece at (1,5)" << std::endl;
+//         return;
+//     }
 
-    // Check if it's black
-    if (blackPiece->isWhite)
-    {
-        std::cout << "Error: Piece at (1,5) is white" << std::endl;
-        return;
-    }
+//     // Check if it's black
+//     if (blackPiece->isWhite)
+//     {
+//         std::cout << "Error: Piece at (1,5) is white" << std::endl;
+//         return;
+//     }
 
-    std::cout << "Found black piece at (1,5)" << std::endl;
+//     std::cout << "Found black piece at (1,5)" << std::endl;
 
-    // Try to generate moves
-    try
-    {
-        moves_t moves = blackPiece->getAllPossibleMoves(board);
-        std::cout << "Generated " << moves.size() << " possible moves" << std::endl;
+//     // Try to generate moves
+//     try
+//     {
+//         moves_t moves = blackPiece->getAllPossibleMoves(board);
+//         std::cout << "Generated " << moves.size() << " possible moves" << std::endl;
 
-        // Print the moves
-        for (size_t i = 0; i < moves.size(); i++)
-        {
-            coords_t end = moves[i]->getEndingPosition();
-            std::cout << "  Move " << i << ": To (" << end[0] << "," << end[1] << ")" << std::endl;
-        }
-    }
-    catch (std::exception &e)
-    {
-        std::cout << "Exception: " << e.what() << std::endl;
-    }
-    catch (...)
-    {
-        std::cout << "Unknown exception occurred" << std::endl;
-    }
+//         // Print the moves
+//         for (size_t i = 0; i < moves.size(); i++)
+//         {
+//             coords_t end = moves[i]->getEndingPosition();
+//             std::cout << "  Move " << i << ": To (" << end[0] << "," << end[1] << ")" << std::endl;
+//         }
+//     }
+//     catch (std::exception &e)
+//     {
+//         std::cout << "Exception: " << e.what() << std::endl;
+//     }
+//     catch (...)
+//     {
+//         std::cout << "Unknown exception occurred" << std::endl;
+//     }
 
-    std::cout << "\n----- End Test -----\n"
-              << std::endl;
+//     std::cout << "\n----- End Test -----\n"
+//               << std::endl;
+// }
+
+void testDatabase(Server& server) {
+    std::cout << "\n----- Testing Database Integration -----\n" << std::endl;
+    
+    // Test user registration
+    std::string username = "testuser";
+    std::string email = "test@example.com";
+    std::string password = "password123";
+    
+    bool registerResult = server.registerUser(username, email, password);
+    std::cout << "User registration: " << (registerResult ? "Success" : "Failed") << std::endl;
+    
+    // Test authentication
+    bool authResult = server.authenticateUser(username, password);
+    std::cout << "User authentication: " << (authResult ? "Success" : "Failed") << std::endl;
+    
+    // Test game session creation and state saving
+    int sessionId = server.createGameSession(username);
+    std::cout << "Created game session with ID: " << sessionId << std::endl;
+    
+    // Save a dummy board state
+    std::string dummyState = "wEwEwEwEEwEwEwEwwEwEwEwEEwEwEwEwEEEEEEEEbEbEbEbEEbEbEbEbbEbEbEbE";
+    bool saveResult = server.saveGameState(sessionId, dummyState);
+    std::cout << "Save game state: " << (saveResult ? "Success" : "Failed") << std::endl;
+    
+    // Load the state back
+    std::string loadedState = server.loadGameState(sessionId);
+    std::cout << "Loaded game state matches: " << (loadedState == dummyState ? "Yes" : "No") << std::endl;
+    
+    // Record a move
+    bool moveResult = server.recordMove(sessionId, 2, 2, 3, 3, true);
+    std::cout << "Record move: " << (moveResult ? "Success" : "Failed") << std::endl;
+    
+    std::cout << "\n----- End Database Test -----\n" << std::endl;
 }
 
 void debugBlackPiece()
@@ -118,7 +153,7 @@ int main()
     // Initialize socket library (Windows needs this)
     SocketWrapper::initialize();
 
-    testBlackPieceMoves();
+    // testBlackPieceMoves();
     // Kill any previous instances of the server
    // killPreviousInstances();
 
@@ -133,6 +168,8 @@ int main()
         SocketWrapper::cleanup();
         return 1;
     }
+
+    testDatabase(server);
 
     // Create a test game session
     int sessionId = server.createGameSession("Player1");
