@@ -12,9 +12,8 @@ const useGameState = () => {
   const [currentPlayer, setCurrentPlayer] = useState("");
   const [gameStatus, setGameStatus] = useState("waiting");
 
-  const updateFromServer = useCallback((data) => {
+  const updateFromServer = useCallback((response) => {
     try {
-      const response = JSON.parse(data);
 
       // Handle different message types
       switch (response.type) {
@@ -67,12 +66,19 @@ const useGameState = () => {
             break;
           
 
-        default:
-          setMessages((prev) => [...prev, `Received: ${data}`]);
-      }
-    } catch (err) {
-      console.error("Failed to parse server message:", err);
-      setMessages((prev) => [...prev, `Received: ${data}`]);
+            default:
+              setMessages((prev) => [
+                ...prev,
+                `Received: ${JSON.stringify(response)}`,
+              ]);
+            break;
+        }
+      }  catch (err) {
+      console.error("Failed to handle server message:", err);
+      setMessages((prev) => [
+        ...prev,
+        `Error handling response: ${err.message}`,
+      ]);
     }
   }, []);
 
@@ -101,5 +107,3 @@ const useGameState = () => {
 };
 
 export default useGameState;
-
-

@@ -8,6 +8,10 @@
 #include <cstring>
 #include <thread>
 #include <chrono>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <iomanip>
 
 void killPreviousInstances()
 {
@@ -33,14 +37,122 @@ Server::Server(int port, int numThreads)
     : port(port),
       serverSocket(SOCKET_ERROR_VALUE),
       running(false),
-      nextSessionId(1)
+      nextSessionId(1),
+      dbInitialized(false)
 {
     // Initialize socket library (Windows needs this)
     SocketWrapper::initialize();
 
     // Create the thread pool
     threadPool = new ThreadPool(numThreads);
+    dbInitialized = dbManager.initialize();
+    if (!dbInitialized) {
+        std::cerr << "Warning: Database initialization failed" << std::endl;
+    } else {
+        std::cout << "Database initialized successfully" << std::endl;
+    }
 }
+
+class SHA256 {
+    public:
+    static inline unsigned int rotr(unsigned int x, unsigned int n) {
+        return (x >> n) | (x << (32 - n));
+    }
+        static std::string hash(const std::string &input);
+    private:
+        static constexpr unsigned int k[64] = {
+            0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,
+            0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+            0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,
+            0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+            0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
+            0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+            0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,
+            0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+            0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,
+            0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+            0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,
+            0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+            0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,
+            0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+            0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
+            0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+        };
+    
+        static void transform(const unsigned char *message, unsigned int block_nb, unsigned int *digest);
+    };
+
+    std::string SHA256::hash(const std::string &input) {
+        unsigned int h[8] = {
+            0x6a09e667,
+            0xbb67ae85,
+            0x3c6ef372,
+            0xa54ff53a,
+            0x510e527f,
+            0x9b05688c,
+            0x1f83d9ab,
+            0x5be0cd19
+        };
+    
+        std::vector<unsigned char> msg(input.begin(), input.end());
+        size_t original_len = msg.size();
+    
+        msg.push_back(0x80);
+        while ((msg.size() + 8) % 64 != 0) {
+            msg.push_back(0);
+        }
+    
+        uint64_t bit_len = original_len * 8;
+        for (int i = 7; i >= 0; --i)
+            msg.push_back((bit_len >> (i * 8)) & 0xFF);
+    
+        unsigned int w[64];
+        for (size_t i = 0; i < msg.size(); i += 64) {
+            for (int j = 0; j < 16; ++j)
+                w[j] = (msg[i + j * 4] << 24) | (msg[i + j * 4 + 1] << 16) |
+                       (msg[i + j * 4 + 2] << 8) | (msg[i + j * 4 + 3]);
+    
+            for (int j = 16; j < 64; ++j) {
+                unsigned int s0 = rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >> 3);
+                unsigned int s1 = rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >> 10);
+                w[j] = w[j - 16] + s0 + w[j - 7] + s1;
+            }
+    
+            unsigned int a = h[0], b = h[1], c = h[2], d = h[3];
+            unsigned int e = h[4], f = h[5], g = h[6], h_ = h[7];
+    
+            for (int j = 0; j < 64; ++j) {
+                unsigned int S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+                unsigned int ch = (e & f) ^ ((~e) & g);
+                unsigned int temp1 = h_ + S1 + ch + k[j] + w[j];
+                unsigned int S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+                unsigned int maj = (a & b) ^ (a & c) ^ (b & c);
+                unsigned int temp2 = S0 + maj;
+    
+                h_ = g;
+                g = f;
+                f = e;
+                e = d + temp1;
+                d = c;
+                c = b;
+                b = a;
+                a = temp1 + temp2;
+            }
+    
+            h[0] += a; h[1] += b; h[2] += c; h[3] += d;
+            h[4] += e; h[5] += f; h[6] += g; h[7] += h_;
+        }
+    
+        std::stringstream ss;
+        for (int i = 0; i < 8; ++i)
+            ss << std::hex << std::setw(8) << std::setfill('0') << h[i];
+    
+        return ss.str();
+    }
+
+    std::string hashPassword(const std::string& password) {
+        return SHA256::hash(password);
+    }
 
 Server::~Server()
 {
@@ -182,60 +294,51 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
     }
     
     std::string response;
-    
+    std::istringstream iss(message); 
+
     try {
-        // Parse commands similar to your existing code
         if (upperMessage.find("LOGIN") == 0) {
-            // Format: LOGIN username password
-            size_t firstSpace = message.find(" ");
-            size_t secondSpace = message.find(" ", firstSpace + 1);
-        
-            if (firstSpace != std::string::npos && secondSpace != std::string::npos) {
-                std::string username = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-                std::string password = message.substr(secondSpace + 1);
-        
-                if (registeredUsers.count(username) && registeredUsers[username].second == password) {
-                    wsConnections[hdl] = username;
-                    response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
-                } else {
-                    response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
-                }
-            } else {
-                response = "{ \"type\": \"error\", \"message\": \"Invalid login format\" }";
-            }
+            std::istringstream iss(message);
+            std::string command, username, password;
+            iss >> command >> username >> password;  
+
+            std::cout << "[LOGIN] Trying username: " << username << std::endl;
+
+    if (!username.empty() && !password.empty()) {
+        std::string hashed = SHA256::hash(password);
+        std::cout << "[LOGIN] Password (hashed): " << hashed << std::endl;
+
+        if (dbManager.validateUser(username, hashed)) {
+            wsConnections[hdl] = username;
+            response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
+        } else {
+            response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
+        }
+        } else {
+            response = "{ \"type\": \"error\", \"message\": \"Invalid login format\" }";
+        }
+    
         } else if (upperMessage.find("REGISTER") == 0) {
             // Format: REGISTER email username password
-            size_t firstSpace = message.find(" ");
-            size_t secondSpace = message.find(" ", firstSpace + 1);
-            size_t thirdSpace = message.find(" ", secondSpace + 1);
-        
-            if (firstSpace != std::string::npos && secondSpace != std::string::npos && thirdSpace != std::string::npos) {
-                std::string email = message.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-                std::string username = message.substr(secondSpace + 1, thirdSpace - secondSpace - 1);
-                std::string password = message.substr(thirdSpace + 1);
-        
-                if (registeredUsers.count(username)) {
-                    response = "{ \"type\": \"error\", \"message\": \"Username already registered\" }";
-                } else {
-                    registeredUsers[username] = { email, password };
-                    response = "{ \"type\": \"register_success\" }";
-                }
+            std::string command, email, username, password;
+            iss >> command >> email >> username >> password;
+                
+            if (registerUser(username, email, password)) {
+                response = "{ \"type\": \"register_success\", \"username\": \"" + username + "\" }";
             } else {
-                response = "{ \"type\": \"error\", \"message\": \"Invalid register format\" }";
-            }
-        } else if (upperMessage.find("CREATE") == 0) {
-            // Check if user is logged in
+                response = "{ \"type\": \"error\", \"message\": \"Registration failed. Username may already exist.\" }";
+            }  
+              
+            } else if (upperMessage.find("CREATE") == 0) {
             std::string clientId = wsConnections[hdl];
             if (clientId != "Unknown") {
                 int gameSessionId = createGameSession(clientId);
-
-                   // Get the session and add this client's socket
-                   GameSession *session = getGameSession(gameSessionId);
-                   if (session)
-                   {
-                       session->addWebSocketHandle(hdl, &wsServer);
-                   }
-                
+    
+                GameSession* session = getGameSession(gameSessionId);
+                if (session) {
+                    session->addWebSocketHandle(hdl, &wsServer);
+                }
+    
                 response = "{ \"type\": \"game_created\", \"gameCode\": \"" + gameCodes[gameSessionId] + "\" }";
             } else {
                 response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
@@ -599,6 +702,16 @@ int Server::createGameSession(const std::string &player1Id)
     return sessionId;
 }
 
+bool Server::registerUser(const std::string& username, const std::string& email, const std::string& password) {
+    std::string hashed = SHA256::hash(password);
+    return dbManager.createUser(username, email, hashed);
+}
+
+bool Server::authenticateUser(const std::string& username, const std::string& password) {
+    std::string hashed = SHA256::hash(password);
+    return dbManager.validateUser(username, hashed);
+}
+
 bool Server::joinGameSession(int sessionId, const std::string &player2Id)
 {
     std::lock_guard<std::mutex> lock(sessionsMutex);
@@ -632,4 +745,3 @@ void Server::closeSocket(socket_t socket)
 {
     SocketWrapper::closeSocket(socket);
 }
-

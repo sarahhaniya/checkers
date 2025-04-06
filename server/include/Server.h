@@ -15,6 +15,7 @@
 #include "../asio/asio/include/asio.hpp"
 #include "../websocketpp/websocketpp/server.hpp"
 #include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
+#include "../src/DatabaseManager.h"
 
 // Declare the function before any class definitions
 void killPreviousInstances();
@@ -29,11 +30,13 @@ private:
     socket_t serverSocket; // Changed from int to socket_t
     std::atomic<bool> running;
     ThreadPool *threadPool;
+    DatabaseManager dbManager;
+    bool dbInitialized;
+    int nextSessionId;
 
     std::mutex sessionsMutex;
     std::unordered_map<int, GameSession *> gameSessions;
     std::unordered_map<int, std::string > gameCodes;
-    int nextSessionId;
 
     std::thread acceptThread;
 
@@ -72,6 +75,17 @@ public:
     static void closeSocket(socket_t socket); // Changed from int to socket_t
 
     int getPort() const { return port; }
+
+    bool initializeDatabase();
+    bool registerUser(const std::string& username, const std::string& email, const std::string& password);
+    bool authenticateUser(const std::string& username, const std::string& password);
+    bool saveGameState(int sessionId, const std::string& boardState);
+    std::string loadGameState(int sessionId);
+    bool recordMove(int sessionId, int fromX, int fromY, int toX, int toY, bool isWhite);
+
+    std::string generateInviteCode();
+    int findSessionByInviteCode(const std::string& gameCode);
+    bool processGameMove(const std::string& username, int fromX, int fromY, int toX, int toY);
 };
 
 #endif // SERVER_H
