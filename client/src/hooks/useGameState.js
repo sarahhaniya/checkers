@@ -1,70 +1,96 @@
 import { useState, useCallback } from "react";
 
 const useGameState = () => {
-  const [player, setPlayer] = useState(null);
-  const [gameId, setGameId] = useState(null);
+  const [player, setPlayer] = useState("");
+  const [gameId, setGameId] = useState("");
   const [board, setBoard] = useState(
     Array(8)
       .fill()
       .map(() => Array(8).fill(""))
   );
   const [messages, setMessages] = useState([]);
-  const [currentPlayer, setCurrentPlayer] = useState(null);
+  const [currentPlayer, setCurrentPlayer] = useState("");
   const [gameStatus, setGameStatus] = useState("waiting");
 
-  const addMessage = (message) => {
-    setMessages((prev) => [...prev, message]);
-  };
-
-  const updateFromServer = useCallback((data) => {
-    console.log("Received server data:", data);
-
+  const updateFromServer = useCallback((response) => {
     try {
-      switch (data.type) {
-        case "login_success":
-          setPlayer(data.username);
-          addMessage(`Logged in as ${data.username}`);
-          break;
 
-        case "register_success":
-          addMessage("Registration successful");
+      // Handle different message types
+      switch (response.type) {
+        case "login_success":
+          setMessages((prev) => [...prev, `Logged in as ${response.username}`]);
+          setPlayer(response.username);
           break;
 
         case "game_created":
-          setGameId(data.gameId);
-          addMessage(`Game created. Invite code: ${data.gameCode}`);
           setGameStatus("waiting");
+          setCurrentPlayer("");
+          setGameId(response.gameCode);
+          setMessages((prev) => [
+            ...prev,
+            `Game created with ID: ${response.gameCode}`,
+          ]);
           break;
 
-        case "game_joined":
-          setGameId(data.gameId);
-          addMessage(`Joined game ${data.gameId}`);
+        case "game_joined": {
+          const { gameInfo } = response;
+
+          if (response.board) {
+            setBoard(response.board);
+          }
           setGameStatus("playing");
+          setCurrentPlayer(gameInfo.currentTurn);
+          setMessages((prev) => [
+            ...prev,
+            `Joined game with ID: ${response.gameId}`,
+          ]);
+
+          break;
+        }
+
+        case "game_update":
+          setBoard(response.board);
+          setCurrentPlayer(response.currentPlayer);
+          if (response.winner) {
+            setGameStatus("finished");
+            setMessages((prev) => [
+              ...prev,
+              `Game over! Winner: ${response.winner}`,
+            ]);
+          }
           break;
 
-        case "move_success":
-          addMessage(`Move made from ${data.from} to ${data.to}`);
-          // Update board state if needed
-          break;
+          case "error":
+            setMessages((prev) => [...prev, `Error: ${response.message}`]);
+            alert(`Error: ${response.message}`);
+            break;
+          
 
-        case "error":
-          addMessage(`Error: ${data.message}`);
-          break;
-
-        default:
-          console.log('Unhandled message type:', data);
-          addMessage(`Received: ${JSON.stringify(data)}`);
-      }
-    } catch (err) {
-      console.error("Failed to process server message:", err);
-      addMessage(`Error processing message: ${err.message}`);
+            default:
+              setMessages((prev) => [
+                ...prev,
+                `Received: ${JSON.stringify(response)}`,
+              ]);
+            break;
+        }
+      }  catch (err) {
+      console.error("Failed to handle server message:", err);
+      setMessages((prev) => [
+        ...prev,
+        `Error handling response: ${err.message}`,
+      ]);
     }
   }, []);
 
-  const makeMove = useCallback((fromX, fromY, toX, toY) => {
-    // This method now returns a string compatible with the backend's MOVE command
-    return `move ${fromX} ${fromY} ${toX} ${toY}`;
-  }, []);
+  const makeMove = useCallback(
+    (fromX, fromY, toX, toY) => {
+      return {
+        type: "MOVE",
+        payload: { fromX, fromY, toX, toY, gameId },
+      };
+    },
+    [gameId]
+  );
 
   return {
     player,
@@ -72,15 +98,11 @@ const useGameState = () => {
     gameId,
     setGameId,
     board,
-    setBoard,
     currentPlayer,
-    setCurrentPlayer,
     gameStatus,
-    setGameStatus,
     messages,
     updateFromServer,
     makeMove,
-    addMessage,
   };
 };
 
