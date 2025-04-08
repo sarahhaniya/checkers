@@ -288,6 +288,10 @@ function App() {
               onClick={() => {
                 setGameId(null);
                 setView("lobby");
+
+                if (loginUsername && loginPassword) {
+                  sendMessage(`login ${loginUsername} ${loginPassword}`);
+                }            
               }}
             >
               Return to Lobby
