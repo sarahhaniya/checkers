@@ -116,6 +116,10 @@ const useGameState = () => {
         case "error":
           setMessages((prev) => [...prev, `Error: ${response.message}`]);
           alert(`Error: ${response.message}`);
+           // Optionally reset inputs
+          if (response.message.includes("Invalid username")) {
+          setPlayer(""); // Just to be safe
+  }
           break;
 
         default:

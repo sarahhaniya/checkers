@@ -48,7 +48,6 @@ function App() {
 
   const handleLogin = () => {
     if (loginUsername && loginPassword) {
-      setPlayer(loginUsername); 
       sendMessage(`login ${loginUsername} ${loginPassword}`);
     }
   };
@@ -292,8 +291,8 @@ function App() {
             </button>
           </div>
         )}
-    {/* Winner Display */}
-    {gameStatus === "finished" && showGameOverPopup && (
+     {/* Winner Display */}
+     {gameStatus === "finished" && showGameOverPopup && (
   <div style={{
     position: "fixed",
     top: 0,
