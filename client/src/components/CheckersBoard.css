@@ -1,0 +1,32 @@
+.piece {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+  }
+  
+  .piece.red {
+    background-color: white; /* use white for red player */
+    border: 2px solid red;
+  }
+  
+  .piece.black {
+    background-color: black;
+    border: 2px solid white;
+  }
+  
+  .piece:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 5px white;
+  }
+  
+  .king {
+    font-size: 20px;
+    color: gold;
+    font-weight: bold;
+  }
+  

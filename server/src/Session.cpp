@@ -4,6 +4,9 @@
 #include <iostream>
 #include <sstream>
 
+#include "../include/nlohmann/json.hpp"
+using nlohmann::json;
+
 GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id)
     : sessionId(id),
       player1Id(p1Id),
@@ -13,6 +16,8 @@ GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id
 {
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
+
+
 
 int GameSession::mutexOperationId = 0;
 
@@ -46,6 +51,14 @@ bool GameSession::joinGame(const std::string &p2Id)
     // Check if game is already full
     if (!player2Id.empty())
     {
+        std::cout << "[JOIN FAILED] Game already has 2 players." << std::endl;
+        return false;
+    }
+
+    // Prevent player1 from joining again
+    if (p2Id == player1Id)
+    {
+        std::cout << "[JOIN FAILED] Player " << p2Id << " is already player1." << std::endl;
         return false;
     }
 
@@ -459,62 +472,46 @@ std::string GameSession::getBoardState() const
     return ss.str();
 }
 
-std::string GameSession::getBoardStateJson() const
-{
-       // Create a clean JSON structure
-       std::stringstream ss;
-       ss << "{";
-       ss << "\"type\":\"game_joined\",";
-       ss << "\"gameId\":\"" << sessionId << "\",";
-       
-       // Add gameInfo directly (not as a string)
-       ss << "\"gameInfo\":{";
-       ss << "\"player1Id\":\"" << player1Id << "\",";
-       ss << "\"player2Id\":\"" << player2Id << "\",";
-       ss << "\"currentTurn\":\"" << (isPlayer1Turn ? "Player1" : "Player2") << "\"";
-       ss << "},";
-       
-       // Add board directly (not as a string)
-       ss << "\"board\":[";
-       
-       // Header row
-       ss << "[\" \",\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\"],";
-       
-       // Board content
-       for (int y = 0; y < Board::SIZE; y++) {
-           ss << "[\"" << y << "\",";
-           
-           for (int x = 0; x < Board::SIZE; x++) {
-               Piece* piece = gameBoard.getValueAt(x, y);
-               
-               if (piece != nullptr) {
-                   std::string pieceStr = piece->isWhite ? "W " : "B ";
-                   if (piece->getString().find("K") != std::string::npos) {
-                       pieceStr = piece->isWhite ? "WK" : "BK";
-                   }
-                   ss << "\"" << pieceStr << "\"";
-               } else if (gameBoard.isCheckerboardSpace(x, y)) {
-                   ss << "\".\"";
-               } else {
-                   ss << "\" \"";
-               }
-               
-               if (x < Board::SIZE - 1) {
-                   ss << ",";
-               }
-           }
-           
-           ss << "]";
-           if (y < Board::SIZE - 1) {
-               ss << ",";
-           }
-       }
-       
-       ss << "]";
-       ss << "}";
-       
-       return ss.str();
+std::string GameSession::getBoardStateJson() const {
+    std::stringstream ss;
+    ss << "{";
+    ss << "\"type\":\"game_joined\",";
+    ss << "\"gameId\":\"" << sessionId << "\",";
+    
+    ss << "\"gameInfo\":{";
+    ss << "\"player1Id\":\"" << player1Id << "\",";
+    ss << "\"player2Id\":\"" << player2Id << "\",";
+    ss << "\"currentTurn\":\"" << (isPlayer1Turn ? "Player1" : "Player2") << "\"";
+    ss << "},";
+
+    ss << "\"board\":[";
+    if (gameStarted) {
+        for (int y = 0; y < Board::SIZE; ++y) {
+            ss << "[";
+            for (int x = 0; x < Board::SIZE; ++x) {
+                Piece* piece = gameBoard.getValueAt(x, y);
+                if (piece) {
+                    ss << "{";
+                    ss << "\"isWhite\":" << (piece->isWhite ? "true" : "false") << ",";
+                    ss << "\"isKing\":" << (piece->getString().find("K") != std::string::npos ? "true" : "false");
+                    ss << "}";
+                } else {
+                    ss << "null";
+                }
+                if (x < Board::SIZE - 1) ss << ",";
+            }
+            ss << "]";
+            if (y < Board::SIZE - 1) ss << ",";
+        }
+    }
+    ss << "]";
+
+    ss << "}";
+
+    return ss.str();
 }
+
+
 
 void GameSession::addClientSocket(socket_t socket)
 {
@@ -557,13 +554,34 @@ bool GameSession::checkForWinner()
         std::cout << message;
 
         // Broadcast the win message to all clients
-        for (socket_t socket : clientSockets)
-        {
-            SocketWrapper::sendData(socket, message.c_str(), message.length());
-        }
+            for (socket_t socket : clientSockets)
+            {
+                SocketWrapper::sendData(socket, message.c_str(), message.length());
+            }
+
+            // ✅ Also broadcast to WebSocket clients
+            for (auto& conn : GameSession::wsConnections)
+            {
+                try {
+                    conn.second->send(conn.first, message, websocketpp::frame::opcode::text);
+                } catch (const websocketpp::exception& e) {
+                    std::cerr << "WebSocket send error: " << e.what() << std::endl;
+                }
+            }
+
 
         return true;
     }
 
     return false;
 }
+
+
+
+int GameSession::getCurrentTurn() {
+    return isPlayer1Turn ? 0 : 1;
+}
+
+// std::string GameSession::getCurrentTurnStr() const {
+//     return isPlayer1Turn ? "Player1" : "Player2";
+// }

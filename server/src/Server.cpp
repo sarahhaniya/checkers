@@ -351,12 +351,19 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                 if (clientId != "Unknown") {
                     std::string code = message.substr(pos + 1);
                     int sessionId = 0;
+                    std::cout << "Client " << clientId << " attempting to join with code " << code << std::endl;
+
                     for (const auto& [key, value] : gameCodes){
                      if (value == code){
                       sessionId = key;
                      }
                     }
-              
+                    std::cout << "Trying to JOIN session with code: " << code << std::endl;
+                    std::cout << "Resolved session ID: " << sessionId << std::endl;
+                    std::cout << "Client ID: " << clientId << std::endl;
+                    if (!gameSessions.count(sessionId)) {
+                        std::cout << " Session ID " << sessionId << " not found in gameSessions!" << std::endl;
+                    }
                     if (joinGameSession(sessionId, clientId)) {
                         GameSession* session = getGameSession(sessionId);
                         if (session) {
@@ -376,6 +383,57 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                 }
             }
         }
+        
+        else if (upperMessage.find("MOVE") == 0) {
+    // Format: MOVE fromX fromY toX toY
+    std::string clientId = wsConnections[hdl];
+    int gameSessionId = -1;
+
+  for (const auto& [id, session] : gameSessions) {
+    if (session->getPlayer2Id() == clientId || session->getPlayer1Id() == clientId) {
+        gameSessionId = id;
+        break;
+    }
+}
+
+    if (clientId != "Unknown" && gameSessionId != -1) {
+        int fromX, fromY, toX, toY;
+        if (sscanf(message.c_str(), "%*[^0-9]%d %d %d %d", &fromX, &fromY, &toX, &toY) == 4) {
+            GameSession* session = getGameSession(gameSessionId);
+            if (session) {
+                bool moveResult = session->makeMove(clientId, fromX, fromY, toX, toY);
+
+             std::ostringstream moveJson;
+            moveJson << "{";
+            moveJson << "\"type\":\"MoveResult\",";
+            moveJson << "\"success\":" << (moveResult ? "true" : "false") << ",";
+            moveJson << "\"from\":[" << fromX << "," << fromY << "],";
+            moveJson << "\"to\":[" << toX << "," << toY << "],";
+            moveJson << "\"board\":" << session->getBoardStateJson() << ",";  // Keep this if getBoardState() still returns json
+            moveJson << "\"nextTurn\":" << session->getCurrentTurn();
+            moveJson << "}";
+
+            std::string jsonStr = moveJson.str();
+
+                // Send to all players in the session
+                for (auto& conn : session->getWsConnections()) {
+                    try {
+                        conn.second->send(conn.first, jsonStr, websocketpp::frame::opcode::text);
+                    } catch (const websocketpp::exception& e) {
+                        std::cerr << "WebSocket send failed: " << e.what() << std::endl;
+                    }
+                }
+            }
+        } else {
+            response = "{ \"type\": \"error\", \"message\": \"Invalid move format. Use: MOVE fromX fromY toX toY\" }";
+            wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+        }
+    } else {
+        response = "{ \"type\": \"error\", \"message\": \"You are not in a game\" }";
+        wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+    }
+}
+
         // Add other commands (MOVE, STATE, etc.)
         
     } catch (const std::exception& e) {
@@ -609,7 +667,7 @@ void Server::handleClientConnection(socket_t clientSocket)
                             GameSession *session = getGameSession(gameSessionId);
                             if (session)
                             {
-                                std::string state = session->getBoardState() + "\n";
+                                std::string state = session->getBoardStateJson() + "\n";
                                 SocketWrapper::sendData(clientSocket, state.c_str(), state.length());
                             }
                         }

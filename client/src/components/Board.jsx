@@ -1,64 +1,69 @@
-// components/CheckersBoard.js
+// components/Board.jsx
 import React, { useState } from "react";
+import './CheckersBoard.css';
 
-const Board = ({ board, currentPlayer, isMyTurn, onMove }) => {
+const Board = ({ 
+  board, 
+  currentPlayer, 
+  player, 
+  isMyTurn, 
+  onMove, 
+  player1Id, 
+  player2Id 
+}) => {
   const [selectedPiece, setSelectedPiece] = useState(null);
-  
-  // Helper to determine piece color
+
+  // Determine piece color
   const getPieceColor = (piece) => {
     if (piece === 'r' || piece === 'R') return 'red';
     if (piece === 'b' || piece === 'B') return 'black';
     return null;
   };
-  
-  // Check if piece is king
-  const isKing = (piece) => {
-    return piece === 'R' || piece === 'B';
-  };
-  
-  // Handle square click
+
+  // Is the piece a king?
+  const isKing = (piece) => piece === 'R' || piece === 'B';
+
+  // Determine the player's color
+  const playerColor = player === player1Id ? 'red' : 'black';
+
   const handleSquareClick = (x, y) => {
     if (!isMyTurn) return;
-    
+
     const piece = board[y][x];
     const pieceColor = getPieceColor(piece);
-    
-    // If no piece is selected and clicking on own piece, select it
+
+    // No selection yet — try to select a piece
     if (!selectedPiece && pieceColor) {
-      // Only select pieces of current player's color
-      const playerColor = currentPlayer.toLowerCase() === 'red' ? 'red' : 'black';
       if (pieceColor === playerColor) {
         setSelectedPiece({ x, y });
       }
-    } 
-    // If a piece is already selected
+    }
+    // Already selected something
     else if (selectedPiece) {
-      // If clicking on same piece, deselect it
+      // Deselect if clicked the same square
       if (selectedPiece.x === x && selectedPiece.y === y) {
         setSelectedPiece(null);
-      } 
-      // If clicking on an empty square, try to move
+      }
+      // Try to move if clicked on empty
       else if (!pieceColor) {
         onMove(selectedPiece.x, selectedPiece.y, x, y);
         setSelectedPiece(null);
       }
-      // If clicking on another piece of same color, select that piece instead
-      else if (getPieceColor(piece) === getPieceColor(board[selectedPiece.y][selectedPiece.x])) {
+      // Change selection if clicked own piece
+      else if (pieceColor === playerColor) {
         setSelectedPiece({ x, y });
       }
     }
   };
-  
+
   const renderSquare = (x, y) => {
     const isBlackSquare = (x + y) % 2 === 1;
     const piece = board[y][x];
     const pieceColor = getPieceColor(piece);
-    
-    // Determine if this square is selected
-    const isSelected = selectedPiece && selectedPiece.x === x && selectedPiece.y === y;
-    
+    const isSelected = selectedPiece?.x === x && selectedPiece?.y === y;
+
     return (
-      <div 
+      <div
         key={`${x}-${y}`}
         onClick={() => handleSquareClick(x, y)}
         style={{
@@ -74,31 +79,14 @@ const Board = ({ board, currentPlayer, isMyTurn, onMove }) => {
         }}
       >
         {pieceColor && (
-          <div style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            backgroundColor: pieceColor,
-            border: "2px solid white",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}>
-            {isKing(piece) && (
-              <div style={{
-                fontSize: "20px",
-                color: "gold",
-                fontWeight: "bold"
-              }}>
-                K
-              </div>
-            )}
+          <div className={`piece ${pieceColor}`}>
+            {isKing(piece) && <div className="king">K</div>}
           </div>
         )}
       </div>
     );
   };
-  
+
   return (
     <div style={{ display: "inline-block", border: "2px solid #333" }}>
       {Array(8).fill().map((_, y) => (
