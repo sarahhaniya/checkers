@@ -283,6 +283,14 @@ void Server::onWebSocketClose(websocketpp::connection_hdl hdl) {
     wsConnections.erase(hdl);
 }
 
+void Server::recordWin(const std::string& username) {
+    if (dbInitialized) dbManager.incrementWins(username);
+}
+
+void Server::recordLoss(const std::string& username) {
+    if (dbInitialized) dbManager.incrementLosses(username);
+}
+
 void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg) {
     std::string message = msg->get_payload();
     std::cout << "Received WebSocket message: " << message << std::endl;
@@ -310,8 +318,19 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
 
         if (dbManager.validateUser(username, hashed)) {
             wsConnections[hdl] = username;
-            response = "{ \"type\": \"login_success\", \"username\": \"" + username + "\" }";
-        } else {
+
+            
+            int wins = dbManager.getWins(username);
+            int losses = dbManager.getLosses(username);
+
+
+            std::ostringstream oss;
+            oss << "{ \"type\": \"login_success\", \"username\": \"" << username
+                << "\", \"wins\": " << wins
+                << ", \"losses\": " << losses << " }";
+        
+            response = oss.str();
+                } else {
             response = "{ \"type\": \"error\", \"message\": \"Invalid username or password\" }";
         }
         } else {
@@ -381,6 +400,22 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                 } else {
                     response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
                 }
+                std::string command;
+                std::string username;
+                std::string password;
+                std::istringstream iss(message);
+                iss >> command >> username >> password;
+
+                if (authenticateUser(username, password)) {
+                    int wins = dbManager.getWins(username);
+                    int losses = dbManager.getLosses(username);
+                    std::cout << "[LOGIN] Wins: " << wins << ", Losses: " << losses << std::endl;
+                    
+                    response = "{ \"type\": \"login_success\", \"username\": \"" + username +
+                               "\", \"wins\": " + std::to_string(wins) +
+                               ", \"losses\": " + std::to_string(losses) + " }";
+                }
+                
             }
         }
         
@@ -751,7 +786,7 @@ int Server::createGameSession(const std::string &player1Id)
 
     // Create a new game session
     int sessionId = nextSessionId++;
-    GameSession *session = new GameSession(inviteCode, sessionId, player1Id);
+    GameSession* session = new GameSession(inviteCode, sessionId, player1Id, &dbManager);  // pass dbManager
 
     // Store it
     gameSessions[sessionId] = session;

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <vector>
 #include <atomic>
+#include "../src/DatabaseManager.h"
 #include "../GameLogic/Board.h"
 #include "../GameLogic/Move.h"
 #include "../GameLogic/Piece.h"
@@ -27,7 +28,8 @@ private:
     std::string player2Id;
     std::vector<socket_t> clientSockets; // Changed from int to socket_t
     bool gameStarted;
-
+    DatabaseManager* db;  
+    
     Board gameBoard; // The checkers board
     std::atomic<bool> isPlayer1Turn;
     std::mutex gameMutex;
@@ -40,7 +42,7 @@ private:
     std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>> wsConnections;
 
 public:
-    GameSession(std::string inviteCode, int id, const std::string &p1Id);
+    GameSession(std::string inviteCode, int id, const std::string &p1Id, DatabaseManager* dbRef);
     ~GameSession();
     const std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>>& getWsConnections() const {
         return wsConnections;

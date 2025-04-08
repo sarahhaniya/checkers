@@ -29,6 +29,8 @@ function App() {
     makeMove,
     player1Id,
     player2Id,
+    wins,
+    losses
   } = useGameState();
 
   const [loginPassword, setLoginPassword] = useState("");
@@ -241,6 +243,7 @@ function App() {
         {view === "lobby" && (
           <>
             <h2 style={{ marginBottom: "1rem" }}>Welcome, {player}!</h2>
+            <p style={{ textAlign: "center" }}>Wins: {wins} | Losses: {losses}</p>
             <button style={styles.button} onClick={handleCreateGame}>
               Create Game
             </button>

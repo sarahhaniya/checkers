@@ -52,6 +52,9 @@ private:
     void onWebSocketOpen(websocketpp::connection_hdl hdl);
     void onWebSocketClose(websocketpp::connection_hdl hdl);
     
+    void recordWin(const std::string& username);
+    void recordLoss(const std::string& username);
+
     // Map to track WebSocket connections to client IDs
     std::map<websocketpp::connection_hdl, std::string, std::owner_less<websocketpp::connection_hdl>> wsConnections;
 

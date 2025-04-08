@@ -5,7 +5,10 @@ const useGameState = () => {
   const [gameId, setGameId] = useState("");
   const [player1Id, setPlayer1Id] = useState("");
   const [player2Id, setPlayer2Id] = useState("");
+  const [wins, setWins] = useState(0);
+  const [losses, setLosses] = useState(0);
   const [board, setBoard] = useState(
+
     Array(8)
       .fill()
       .map(() => Array(8).fill(""))
@@ -30,7 +33,7 @@ const useGameState = () => {
     console.log("[Frontend] Raw data received:", data);
 
     try {
-      if (!data.trim()) return; // ✅ Ignore blank messages from server
+      if (!data.trim()) return;
 
       const response = JSON.parse(data);
 
@@ -39,6 +42,8 @@ const useGameState = () => {
         case "login_success":
           setMessages((prev) => [...prev, `Logged in as ${response.username}`]);
           setPlayer(response.username);
+          setWins(response.wins || 0);
+          setLosses(response.losses || 0);        
           break;
 
         case "game_created":
@@ -172,6 +177,8 @@ const useGameState = () => {
     makeMove,
     player1Id,
     player2Id,
+    wins,
+    losses,
   };
 };
 

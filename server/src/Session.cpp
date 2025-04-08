@@ -7,12 +7,13 @@
 #include "../include/nlohmann/json.hpp"
 using nlohmann::json;
 
-GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id)
+GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id, DatabaseManager* dbRef)
     : sessionId(id),
       player1Id(p1Id),
       gameStarted(false),
       gameBoard(), // Initialize a new board
-      isPlayer1Turn(true)
+      isPlayer1Turn(true),
+      db(dbRef)
 {
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
@@ -548,9 +549,17 @@ bool GameSession::checkForWinner()
         std::string message;
         if (whiteCount == 0)
             message = "BLACK WINS! Player " + player2Id + " is victorious!\n";
-        else
+            if (db) {
+                db->incrementWins(player2Id);
+                db->incrementLosses(player1Id);
+            }        
+            else {
             message = "WHITE WINS! Player " + player1Id + " is victorious!\n";
-
+            if (db) {
+                db->incrementWins(player1Id);
+                db->incrementLosses(player2Id);
+            }        
+            }
         std::cout << message;
 
         // Broadcast the win message to all clients
@@ -559,7 +568,6 @@ bool GameSession::checkForWinner()
                 SocketWrapper::sendData(socket, message.c_str(), message.length());
             }
 
-            // ✅ Also broadcast to WebSocket clients
             for (auto& conn : GameSession::wsConnections)
             {
                 try {
