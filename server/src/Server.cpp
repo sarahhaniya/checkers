@@ -3,6 +3,9 @@
 #include "../include/ThreadPool.h"
 #include "../include/Session.h"
 #include "../include/SocketWrapper.h"
+#include "../websocketpp/websocketpp/config/asio_no_tls.hpp"
+#include "../websocketpp/websocketpp/server.hpp"
+#include "../websocketpp/websocketpp/common/asio.hpp"
 
 #include <iostream>
 #include <cstring>
@@ -197,15 +200,15 @@ bool Server::start()
  
      for (int attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt++)
      {
-         if (SocketWrapper::bindSocket(serverSocket, port + attempt))
+         if (SocketWrapper::bindSocket(serverSocket, 12345))
          {
              // Successfully bound to a port
-             port = port + attempt; // Update the port to the one we actually bound to
+             port = 12345; // Update the port to the one we actually bound to
              bound = true;
              break;
          }
  
-         std::cerr << "Failed to bind to port " << (port + attempt)
+         std::cerr << "Failed to bind to port " << (12345)
                    << ": " << SocketWrapper::getLastError() << std::endl;
      }
  
@@ -254,8 +257,9 @@ bool Server::start()
      
      // Listen on WebSocket port (8080)
      try {
-         wsServer.listen(8080);
-         wsServer.start_accept();
+        asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 8080);
+        wsServer.listen(endpoint);
+                 wsServer.start_accept();
          
          // Start WebSocket server thread
          std::thread wsThread(&WebSocketServer::run, &wsServer);
@@ -369,20 +373,38 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                 std::string clientId = wsConnections[hdl];
                 if (clientId != "Unknown") {
                     std::string code = message.substr(pos + 1);
-                    int sessionId = 0;
-                    std::cout << "Client " << clientId << " attempting to join with code " << code << std::endl;
+                    int sessionId = -1;
+                    std::cout << "Looking up session code: " << code << std::endl;
+std::cout << "Current gameCodes map:\n";
+for (const auto& [id, gcode] : gameCodes) {
+    std::cout << "  Session ID: " << id << " => Code: " << gcode << std::endl;
+}
+for (const auto& [key, value] : gameCodes){
+    if (value == code){
+        sessionId = key;
+        break;
+    }
+}
 
-                    for (const auto& [key, value] : gameCodes){
-                     if (value == code){
-                      sessionId = key;
-                     }
-                    }
+if (sessionId == -1 || !gameSessions.count(sessionId)) {
+    response = "{ \"type\": \"error\", \"message\": \"Invalid or expired game code\" }";
+    wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+    return;
+}
+                    // int sessionId = 0;
+                    // std::cout << "Client " << clientId << " attempting to join with code " << code << std::endl;
+
+                    // for (const auto& [key, value] : gameCodes){
+                    //  if (value == code){
+                    //   sessionId = key;
+                    //  }
+                    // }
                     std::cout << "Trying to JOIN session with code: " << code << std::endl;
                     std::cout << "Resolved session ID: " << sessionId << std::endl;
                     std::cout << "Client ID: " << clientId << std::endl;
-                    if (!gameSessions.count(sessionId)) {
-                        std::cout << " Session ID " << sessionId << " not found in gameSessions!" << std::endl;
-                    }
+                    // if (!gameSessions.count(sessionId)) {
+                    //     std::cout << " Session ID " << sessionId << " not found in gameSessions!" << std::endl;
+                    // }
                     if (joinGameSession(sessionId, clientId)) {
                         GameSession* session = getGameSession(sessionId);
                         if (session) {

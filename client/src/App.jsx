@@ -35,7 +35,7 @@ function App() {
 
   const [loginPassword, setLoginPassword] = useState("");
   const memoizedUpdateFromServer = useCallback(updateFromServer, [updateFromServer]);
-  const { sendMessage, status } = useWebSocket("http://localhost:8080", memoizedUpdateFromServer, player, loginPassword, gameId );
+  const { sendMessage, status } = useWebSocket("ws://localhost:8080", memoizedUpdateFromServer, player, loginPassword, gameId );
 
   const [view, setView] = useState("login");
   const [gameIdInput, setGameIdInput] = useState("");

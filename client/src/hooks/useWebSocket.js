@@ -19,11 +19,11 @@ const useWebSocket = (url, onMessage, player, gameId) => {
       socketRef.current.onopen = () => {
         console.log("Connected to server");
         setConnectionStatus("connected");
-         // Rejoin game automatically if player is still in state
-  if (gameId && player) {
-    socketRef.current.send(`join ${gameId}`);
-    console.log(`[WebSocket] Rejoining game ${gameId} as ${player}`);
-  }
+        // Rejoin game automatically if player is still in state
+        if (gameId && player) {
+          socketRef.current.send(`join ${gameId}`);
+          console.log(`[WebSocket] Rejoining game ${gameId} as ${player}`);
+        }
       };
 
       socketRef.current.onmessage = (event) => {
@@ -63,7 +63,7 @@ const useWebSocket = (url, onMessage, player, gameId) => {
 
   const sendMessage = (msg) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      console.log("[WebSocket] Sending:", msg);  
+      console.log("[WebSocket] Sending:", msg);
       socketRef.current.send(msg);
       return true;
     } else {
