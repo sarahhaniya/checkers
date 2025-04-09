@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const useWebSocket = (url, onMessage, player, gameId) => {
+const useWebSocket = (url, onMessage, player, password, gameId) => {
   const socketRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const reconnectTimeoutRef = useRef(null);

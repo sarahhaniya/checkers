@@ -18,7 +18,14 @@ GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
 
-
+void GameSession::initializeBoard() {
+    gameBoard.setupInitialBoard();  // new function you wrote in Board.cpp
+}
+void GameSession::resetBoard() {
+    initializeBoard();        
+    isPlayer1Turn = true;      // Player1 starts
+    winner = -1;               // Clear winner
+}
 
 int GameSession::mutexOperationId = 0;
 
@@ -325,6 +332,31 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
         return false;
     }
 }
+void GameSession::markGameAsAbandonedBy(const std::string& leaverId) {
+    std::lock_guard<std::mutex> lock(gameMutex);
+
+    std::string message = "Player " + leaverId + " has left the game. Game is now over.";
+    std::cout << "[MARK ABANDONED] Sending message: " << message << std::endl;
+
+    gameStarted = false;  // mark session inactive
+    winner = -1;
+
+    // Notify all sockets (TCP + WebSocket)
+    for (socket_t socket : clientSockets) {
+        SocketWrapper::sendData(socket, message.c_str(), message.length());
+    }
+
+    for (auto& conn : GameSession::wsConnections) {
+        try {
+            conn.second->send(conn.first, message, websocketpp::frame::opcode::text);
+        } catch (...) {
+            // ignore
+        }
+    }
+
+    std::cout << "[GameSession] Game ended because player " << leaverId << " left.\n";
+}
+
 
 void GameSession::broadcastGameState()
 {
@@ -590,6 +622,4 @@ int GameSession::getCurrentTurn() {
     return isPlayer1Turn ? 0 : 1;
 }
 
-// std::string GameSession::getCurrentTurnStr() const {
-//     return isPlayer1Turn ? "Player1" : "Player2";
-// }
+

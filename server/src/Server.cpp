@@ -355,11 +355,19 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
             } else if (upperMessage.find("CREATE") == 0) {
             std::string clientId = wsConnections[hdl];
             if (clientId != "Unknown") {
+                if (sessionByPlayerId.count(clientId)) {
+                    auto oldSession = sessionByPlayerId[clientId];
+                    oldSession->markGameAsAbandonedBy(clientId);
+                    sessionByPlayerId.erase(clientId);
+                }
                 int gameSessionId = createGameSession(clientId);
-    
+                sessionByPlayerId[clientId] = gameSessions[gameSessionId];
+
                 GameSession* session = getGameSession(gameSessionId);
                 if (session) {
                     session->addWebSocketHandle(hdl, &wsServer);
+                     session->resetBoard();                
+                     session->broadcastGameState();        
                 }
     
                 response = "{ \"type\": \"game_created\", \"gameCode\": \"" + gameCodes[gameSessionId] + "\" }";

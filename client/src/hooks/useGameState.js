@@ -29,12 +29,23 @@ const useGameState = () => {
   const [gameStatus, setGameStatus] = useState("waiting");
 
   const updateFromServer = useCallback((data) => {
-
-    console.log("[Frontend] Raw data received:", data);
+    console.log("[updateFromServer] Full raw server data:", JSON.stringify(data));
+  
+    const cleanData = data.trim();
+  
+    if (
+      cleanData.toLowerCase().includes("has left the game") ||
+      cleanData.toLowerCase().includes("game is now over")
+    ) {
+      console.log("[updateFromServer] Match found: abandoned game");
+      setGameStatus("abandoned");
+      setMessages((prev) => [...prev, cleanData]);
+      return;
+    }
 
     try {
       if (!data.trim()) return;
-
+      console.log("[GameState] incoming data from server:", data);
       const response = JSON.parse(data);
 
       // Handle different message types
@@ -139,6 +150,11 @@ const useGameState = () => {
           } else {
             setMessages((prev) => [...prev, `Received: ${data}`]);
           }
+      }
+      if (data.includes("has left the game")) {
+        setGameStatus("abandoned");
+        setMessages((prev) => [...prev, data.trim()]);
+        return;
       }
     } catch (err) {
       // Not a JSON message (likely plain text)

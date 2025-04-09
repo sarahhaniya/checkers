@@ -33,7 +33,7 @@ private:
     DatabaseManager dbManager;
     bool dbInitialized;
     int nextSessionId;
-
+    std::unordered_map<std::string, GameSession*> sessionByPlayerId;
     std::mutex sessionsMutex;
     std::unordered_map<int, GameSession *> gameSessions;
     std::unordered_map<int, std::string > gameCodes;

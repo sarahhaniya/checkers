@@ -197,3 +197,32 @@ bool Board::isOverEdge(int position) const
     coords_t coords = getCoordsFromPos(position); // convert position to coordinates and use that
     return isOverEdge(coords[0], coords[1]); 
 }
+
+void Board::setupInitialBoard()
+{
+    for (int y = 0; y < SIZE; y++)
+    {
+        for (int x = 0; x < SIZE; x++)
+        {
+            // Delete any existing piece to avoid memory leaks
+            delete getValueAt(x, y);
+
+            // add white pieces to the top
+            if (y < 3 && isCheckerboardSpace(x, y))
+            {
+                setValueAt(x, y, new Piece(x, y, true));
+                std::cout << "Added white piece at (" << x << "," << y << ")" << std::endl;
+            }
+            // black pieces to the bottom
+            else if (y >= SIZE - 3 && isCheckerboardSpace(x, y))
+            {
+                setValueAt(x, y, new Piece(x, y, false));
+                std::cout << "Added black piece at (" << x << "," << y << ")" << std::endl;
+            }
+            else
+            {
+                setValueAt(x, y, nullptr);
+            }
+        }
+    }
+}

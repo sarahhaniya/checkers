@@ -37,7 +37,8 @@ private:
     static int mutexOperationId;
     void logMutexAcquire(const std::string &methodName);
     void logMutexRelease(const std::string &methodName);
-
+    int winner = -1;                   // -1 = no winner, 1 = P1, 2 = P2
+    bool currentTurnIsWhite = true;    // true = white's turn (player1)
     typedef websocketpp::server<websocketpp::config::asio> WebSocketServer;
     std::vector<std::pair<websocketpp::connection_hdl, WebSocketServer*>> wsConnections;
 
@@ -51,9 +52,11 @@ public:
     bool makeMove(const std::string &playerId, int fromX, int fromY, int toX, int toY);
     std::string getBoardState() const; // Return serialized board state
     int getCurrentTurn();             // <-- returns 0 or 1 depending on turn
-
+    void resetBoard();
+    void initializeBoard(); 
     void addClientSocket(socket_t socket); // Changed from int to socket_t
     void broadcastGameState();
+    void markGameAsAbandonedBy(const std::string& playerId);
 
     int getSessionId() const { return sessionId; }
     bool isGameFull() const { return !player2Id.empty(); }

@@ -58,7 +58,7 @@ const Board = ({
 
   const renderSquare = (x, y) => {
     const isBlackSquare = (x + y) % 2 === 1;
-    const piece = board[y][x];
+    const piece = board?.[y]?.[x] ?? null;  
     const pieceColor = getPieceColor(piece);
     const isSelected = selectedPiece?.x === x && selectedPiece?.y === y;
 
