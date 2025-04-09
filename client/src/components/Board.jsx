@@ -9,7 +9,8 @@ const Board = ({
   isMyTurn, 
   onMove, 
   player1Id, 
-  player2Id 
+  player2Id,
+  isFlipped   
 }) => {
   const [selectedPiece, setSelectedPiece] = useState(null);
 
@@ -89,13 +90,15 @@ const Board = ({
 
   return (
     <div style={{ display: "inline-block", border: "2px solid #333" }}>
-      {Array(8).fill().map((_, y) => (
-        <div key={y} style={{ display: "flex" }}>
-          {Array(8).fill().map((_, x) => renderSquare(x, y))}
-        </div>
-      ))}
-    </div>
-  );
+    {(isFlipped ? [...Array(8).keys()].reverse() : [...Array(8).keys()]).map((y) => (
+      <div key={y} style={{ display: "flex" }}>
+        {(isFlipped ? [...Array(8).keys()].reverse() : [...Array(8).keys()]).map((x) =>
+          renderSquare(x, y)
+        )}
+      </div>
+    ))}
+  </div>
+);
 };
 
 export default Board;

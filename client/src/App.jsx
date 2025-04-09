@@ -282,6 +282,8 @@ function App() {
               player={player}
               player1Id={player1Id}
               player2Id={player2Id}
+              isFlipped={player === player1Id} 
+
             />
             <button
               style={{ ...styles.button, backgroundColor: "#555" }}
