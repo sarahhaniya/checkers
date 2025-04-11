@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
 import Board from "./components/Board"; // <-- Make sure this is the correct path
@@ -65,6 +65,10 @@ function App() {
     if (regEmail && regUsername && regPassword) {
       sendMessage(`register ${regEmail} ${regUsername} ${regPassword}`);
     }
+   setRegEmail("")
+   setRegUsername("")
+   setRegPassword("")
+
   };
 
   const handleCreateGame = () => sendMessage("create");
@@ -80,7 +84,24 @@ function App() {
   // Function to handle piece movement
   const handleMakeMove = (fromX, fromY, toX, toY) => {
     makeMove(fromX, fromY, toX, toY, sendMessage);
+    if(gameStatus === "finished"){
+      setShowGameOverPopup(true)
+
+    }
   };
+
+  function Header() {
+    if (gameStatus === "playing") {
+      return(
+      <span style={{ fontWeight: "bold" }}>
+      Current turn: {currentPlayer === player ? "Your turn" : `${currentPlayer}'s turn`}
+    </span>
+      )
+     }
+    else if(gameStatus === "finished"){
+     return <span>Game completed</span>
+    }
+  }
 
   useEffect(() => {
     if (player && gameId) {
@@ -265,13 +286,7 @@ function App() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2>Game Invite Code: {gameId}</h2>
               <div>
-                {gameStatus === "playing" ? (
-                  <span style={{ fontWeight: "bold" }}>
-                    Current turn: {currentPlayer === player ? "Your turn" : `${currentPlayer}'s turn`}
-                  </span>
-                ) : (
-                  <span>Game completed</span>
-                )}
+            <Header></Header>
               </div>
             </div>
             <Board

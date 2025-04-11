@@ -8,17 +8,16 @@ const useGameState = () => {
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [board, setBoard] = useState(
-
     Array(8)
       .fill()
       .map(() => Array(8).fill(""))
   );
 
   const formatBoard = (serverBoard) => {
-    return serverBoard.map(row =>
-      row.map(cell => {
+    return serverBoard.map((row) =>
+      row.map((cell) => {
         if (!cell) return null;
-        const pieceChar = cell.isWhite ? 'r' : 'b';
+        const pieceChar = cell.isWhite ? "r" : "b";
         return cell.isKing ? pieceChar.toUpperCase() : pieceChar;
       })
     );
@@ -29,23 +28,11 @@ const useGameState = () => {
   const [gameStatus, setGameStatus] = useState("waiting");
 
   const updateFromServer = useCallback((data) => {
-    console.log("[updateFromServer] Full raw server data:", JSON.stringify(data));
-  
-    const cleanData = data.trim();
-  
-    if (
-      cleanData.toLowerCase().includes("has left the game") ||
-      cleanData.toLowerCase().includes("game is now over")
-    ) {
-      console.log("[updateFromServer] Match found: abandoned game");
-      setGameStatus("abandoned");
-      setMessages((prev) => [...prev, cleanData]);
-      return;
-    }
+    console.log("[Frontend] Raw data received:", data);
 
     try {
       if (!data.trim()) return;
-      console.log("[GameState] incoming data from server:", data);
+
       const response = JSON.parse(data);
 
       // Handle different message types
@@ -54,7 +41,7 @@ const useGameState = () => {
           setMessages((prev) => [...prev, `Logged in as ${response.username}`]);
           setPlayer(response.username);
           setWins(response.wins || 0);
-          setLosses(response.losses || 0);        
+          setLosses(response.losses || 0);
           break;
 
         case "game_created":
@@ -73,12 +60,17 @@ const useGameState = () => {
           setPlayer2Id(gameInfo.player2Id);
 
           const turnUsername =
-            gameInfo.currentTurn === "Player1" ? gameInfo.player1Id : gameInfo.player2Id;
+            gameInfo.currentTurn === "Player1"
+              ? gameInfo.player1Id
+              : gameInfo.player2Id;
 
           if (Array.isArray(response.board)) {
             setBoard(formatBoard(response.board));
           } else {
-            console.warn("Invalid board format received in MoveResult:", response.board);
+            console.warn(
+              "Invalid board format received in MoveResult:",
+              response.board
+            );
           }
 
           setGameStatus("playing");
@@ -110,37 +102,46 @@ const useGameState = () => {
           } else if (boardPayload && Array.isArray(boardPayload.board)) {
             setBoard(formatBoard(boardPayload.board));
           } else {
-            console.warn("Unexpected board structure in MoveResult:", boardPayload);
+            console.warn(
+              "Unexpected board structure in MoveResult:",
+              boardPayload
+            );
           }
 
           const gameInfo = boardPayload?.gameInfo;
           if (gameInfo) {
             setPlayer1Id(gameInfo.player1Id);
             setPlayer2Id(gameInfo.player2Id);
-            const turnUsername = gameInfo.currentTurn === "Player1" ? gameInfo.player1Id : gameInfo.player2Id;
+            const turnUsername =
+              gameInfo.currentTurn === "Player1"
+                ? gameInfo.player1Id
+                : gameInfo.player2Id;
             setCurrentPlayer(turnUsername);
           }
 
           setMessages((prev) => [
             ...prev,
             response.success
-              ? `Move successful: (${response.from.join(",")}) → (${response.to.join(",")})`
-              : `Invalid move attempt from (${response.from.join(",")}) to (${response.to.join(",")})`,
+              ? `Move successful: (${response.from.join(
+                  ","
+                )}) → (${response.to.join(",")})`
+              : `Invalid move attempt from (${response.from.join(
+                  ","
+                )}) to (${response.to.join(",")})`,
           ]);
           break;
 
         case "error":
           setMessages((prev) => [...prev, `Error: ${response.message}`]);
           alert(`Error: ${response.message}`);
-           // Optionally reset inputs
+          // Optionally reset inputs
           if (response.message.includes("Invalid username")) {
-          setPlayer(""); // Just to be safe
-  }
+            setPlayer(""); // Just to be safe
+          }
           break;
 
         default:
-
-        if (data.includes("WINS!")) {
+          if (data.includes("WINS!")) {
             setGameStatus("finished");
 
             const winnerMatch = data.match(/(WHITE|BLACK) WINS!/);
@@ -150,11 +151,6 @@ const useGameState = () => {
           } else {
             setMessages((prev) => [...prev, `Received: ${data}`]);
           }
-      }
-      if (data.includes("has left the game")) {
-        setGameStatus("abandoned");
-        setMessages((prev) => [...prev, data.trim()]);
-        return;
       }
     } catch (err) {
       // Not a JSON message (likely plain text)
@@ -172,13 +168,10 @@ const useGameState = () => {
     }
   }, []);
 
-  const makeMove = useCallback(
-    (fromX, fromY, toX, toY, sendMessage) => {
-      const moveCommand = `move ${fromX} ${fromY} ${toX} ${toY}`;
-      sendMessage(moveCommand);
-    },
-    []
-  );
+  const makeMove = useCallback((fromX, fromY, toX, toY, sendMessage) => {
+    const moveCommand = `move ${fromX} ${fromY} ${toX} ${toY}`;
+    sendMessage(moveCommand);
+  }, []);
 
   return {
     player,
