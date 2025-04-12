@@ -55,7 +55,7 @@ public:
     void resetBoard();
     void initializeBoard(); 
     void addClientSocket(socket_t socket); // Changed from int to socket_t
-    void broadcastGameState();
+    void broadcastGameState(const std::string &code);
     void markGameAsAbandonedBy(const std::string& playerId);
 
     int getSessionId() const { return sessionId; }
@@ -78,6 +78,8 @@ public:
 
       // get JSON representation of board
       std::string getBoardStateJson() const;
+      std::string getJoinBoardStateJson() const;
+
 };
 
 #endif // SESSION_H

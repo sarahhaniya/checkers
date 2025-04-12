@@ -316,16 +316,16 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
 
             std::cout << "[LOGIN] Trying username: " << username << std::endl;
 
-    if (!username.empty() && !password.empty()) {
-        std::string hashed = SHA256::hash(password);
-        std::cout << "[LOGIN] Password (hashed): " << hashed << std::endl;
+            if (!username.empty() && !password.empty()) {
+                std::string hashed = SHA256::hash(password);
+                std::cout << "[LOGIN] Password (hashed): " << hashed << std::endl;
 
-        if (dbManager.validateUser(username, hashed)) {
-            wsConnections[hdl] = username;
+                if (dbManager.validateUser(username, hashed)) {
+                    wsConnections[hdl] = username;
 
-            
-            int wins = dbManager.getWins(username);
-            int losses = dbManager.getLosses(username);
+                    
+                    int wins = dbManager.getWins(username);
+                    int losses = dbManager.getLosses(username);
 
 
             std::ostringstream oss;
@@ -367,7 +367,7 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                 if (session) {
                     session->addWebSocketHandle(hdl, &wsServer);
                      session->resetBoard();                
-                     session->broadcastGameState();        
+                     session->broadcastGameState("");        
                 }
     
                 response = "{ \"type\": \"game_created\", \"gameCode\": \"" + gameCodes[gameSessionId] + "\" }";
@@ -383,22 +383,22 @@ void Server::onWebSocketMessage(websocketpp::connection_hdl hdl, message_ptr msg
                     std::string code = message.substr(pos + 1);
                     int sessionId = -1;
                     std::cout << "Looking up session code: " << code << std::endl;
-std::cout << "Current gameCodes map:\n";
-for (const auto& [id, gcode] : gameCodes) {
-    std::cout << "  Session ID: " << id << " => Code: " << gcode << std::endl;
-}
-for (const auto& [key, value] : gameCodes){
-    if (value == code){
-        sessionId = key;
-        break;
-    }
-}
+                    std::cout << "Current gameCodes map:\n";
+                    for (const auto& [id, gcode] : gameCodes) {
+                        std::cout << "  Session ID: " << id << " => Code: " << gcode << std::endl;
+                    }
+                    for (const auto& [key, value] : gameCodes){
+                        if (value == code){
+                            sessionId = key;
+                            break;
+                        }
+                    }
 
-if (sessionId == -1 || !gameSessions.count(sessionId)) {
-    response = "{ \"type\": \"error\", \"message\": \"Invalid or expired game code\" }";
-    wsServer.send(hdl, response, websocketpp::frame::opcode::text);
-    return;
-}
+                    if (sessionId == -1 || !gameSessions.count(sessionId)) {
+                        response = "{ \"type\": \"error\", \"message\": \"Invalid or expired game code\" }";
+                        wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+                        return;
+                    }
                     // int sessionId = 0;
                     // std::cout << "Client " << clientId << " attempting to join with code " << code << std::endl;
 
@@ -418,15 +418,13 @@ if (sessionId == -1 || !gameSessions.count(sessionId)) {
                         if (session) {
                             // Add WebSocket to notify for game updates
                             session->addWebSocketHandle(hdl, &wsServer);
-                            session->broadcastGameState();
+                            session->broadcastGameState(code);
 
                             // Get and send game state
-                            std::string boardState = session->getBoardStateJson();
-                            response = boardState;
+                            std::string boardState = session->getJoinBoardStateJson();
+                            response = "{ \"code\": \"" + code + "\", " + boardState + " }";
                         }
-                    } else {
-                        response = "{ \"type\": \"error\", \"message\": \"Failed to join game\" }";
-                    }
+                    } 
                 } else {
                     response = "{ \"type\": \"error\", \"message\": \"Please login first\" }";
                 }
@@ -448,59 +446,76 @@ if (sessionId == -1 || !gameSessions.count(sessionId)) {
                 
             }
         }
-        
         else if (upperMessage.find("MOVE") == 0) {
-    // Format: MOVE fromX fromY toX toY
-    std::string clientId = wsConnections[hdl];
-    int gameSessionId = -1;
+            // Format: MOVE fromX fromY toX toY
+            std::string clientId = wsConnections[hdl];
+            int gameSessionId = -1;
 
-  for (const auto& [id, session] : gameSessions) {
-    if (session->getPlayer2Id() == clientId || session->getPlayer1Id() == clientId) {
-        gameSessionId = id;
-        break;
-    }
-}
-
-    if (clientId != "Unknown" && gameSessionId != -1) {
-        int fromX, fromY, toX, toY;
-        if (sscanf(message.c_str(), "%*[^0-9]%d %d %d %d", &fromX, &fromY, &toX, &toY) == 4) {
-            GameSession* session = getGameSession(gameSessionId);
-            if (session) {
-                bool moveResult = session->makeMove(clientId, fromX, fromY, toX, toY);
-
-             std::ostringstream moveJson;
-            moveJson << "{";
-            moveJson << "\"type\":\"MoveResult\",";
-            moveJson << "\"success\":" << (moveResult ? "true" : "false") << ",";
-            moveJson << "\"from\":[" << fromX << "," << fromY << "],";
-            moveJson << "\"to\":[" << toX << "," << toY << "],";
-            moveJson << "\"board\":" << session->getBoardStateJson() << ",";  // Keep this if getBoardState() still returns json
-            moveJson << "\"nextTurn\":" << session->getCurrentTurn();
-            moveJson << "}";
-
-            std::string jsonStr = moveJson.str();
-
-                // Send to all players in the session
-                for (auto& conn : session->getWsConnections()) {
-                    try {
-                        conn.second->send(conn.first, jsonStr, websocketpp::frame::opcode::text);
-                    } catch (const websocketpp::exception& e) {
-                        std::cerr << "WebSocket send failed: " << e.what() << std::endl;
-                    }
+            for (const auto& [id, session] : gameSessions) {
+                if (session->getPlayer2Id() == clientId || session->getPlayer1Id() == clientId) {
+                    gameSessionId = id;
+                    break;
                 }
             }
-        } else {
-            response = "{ \"type\": \"error\", \"message\": \"Invalid move format. Use: MOVE fromX fromY toX toY\" }";
-            wsServer.send(hdl, response, websocketpp::frame::opcode::text);
-        }
-    } else {
-        response = "{ \"type\": \"error\", \"message\": \"You are not in a game\" }";
-        wsServer.send(hdl, response, websocketpp::frame::opcode::text);
-    }
-}
 
-        // Add other commands (MOVE, STATE, etc.)
-        
+            if (clientId != "Unknown" && gameSessionId != -1) {
+                int fromX, fromY, toX, toY;
+                if (sscanf(message.c_str(), "%*[^0-9]%d %d %d %d", &fromX, &fromY, &toX, &toY) == 4) {
+                    GameSession* session = getGameSession(gameSessionId);
+                    if (session) {
+                        bool moveResult = session->makeMove(clientId, fromX, fromY, toX, toY);
+
+                    std::ostringstream moveJson;
+                    moveJson << "{";
+                    moveJson << "\"type\":\"MoveResult\",";
+                    moveJson << "\"success\":" << (moveResult ? "true" : "false") << ",";
+                    moveJson << "\"from\":[" << fromX << "," << fromY << "],";
+                    moveJson << "\"to\":[" << toX << "," << toY << "],";
+                    moveJson << "\"board\":" << session->getBoardStateJson() << ",";  // Keep this if getBoardState() still returns json
+                    moveJson << "\"nextTurn\":" << session->getCurrentTurn();
+                    moveJson << "}";
+
+                    std::string jsonStr = moveJson.str();
+
+                        // Send to all players in the session
+                        for (auto& conn : session->getWsConnections()) {
+                            try {
+                                conn.second->send(conn.first, jsonStr, websocketpp::frame::opcode::text);
+                            } catch (const websocketpp::exception& e) {
+                                std::cerr << "WebSocket send failed: " << e.what() << std::endl;
+                            }
+                        }
+                    }
+                } else {
+                    response = "{ \"type\": \"error\", \"message\": \"Invalid move format. Use: MOVE fromX fromY toX toY\" }";
+                    wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+                }
+            } else {
+                response = "{ \"type\": \"error\", \"message\": \"You are not in a game\" }";
+                wsServer.send(hdl, response, websocketpp::frame::opcode::text);
+            }
+        }else if (upperMessage.find("LEAVE") == 0) {
+            // Format: LEAVE gameId player
+            std::string command, gameID, player;
+            iss >> command >> gameID >> player;
+            int sessionId = -1;
+         
+            for (const auto& [key, value] : gameCodes){
+                if (value == gameID){
+                    sessionId = key;
+                    gameCodes.erase(key);
+                    break;
+                }
+            }
+      
+                GameSession* session = getGameSession(sessionId);
+                if (session) {
+                    session->markGameAsAbandonedBy(player);
+                    response = "{ \"type\": \"game_abandoned\" }";
+
+                }
+          
+        }
     } catch (const std::exception& e) {
         std::cerr << "Exception processing WebSocket command: " << e.what() << std::endl;
         response = "{ \"type\": \"error\", \"message\": \"Server error processing command\" }";
@@ -669,7 +684,7 @@ void Server::handleClientConnection(socket_t clientSocket)
                                 if (session)
                                 {
                                     session->addClientSocket(clientSocket);
-                                    session->broadcastGameState();
+                                    session->broadcastGameState("");
                                 }
 
                                 std::string response = "Joined game with ID: " + std::to_string(gameSessionId) + "\n";

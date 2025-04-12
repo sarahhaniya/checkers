@@ -30,7 +30,10 @@ function App() {
     player1Id,
     player2Id,
     wins,
-    losses
+    losses,
+    setLobbyView,
+    lobbyView,
+
   } = useGameState();
 
   const [loginPassword, setLoginPassword] = useState("");
@@ -76,19 +79,21 @@ function App() {
   const handleJoinGame = () => {
     if (gameIdInput) {
       console.log("[JOIN] Player:", player, "| Game ID:", gameIdInput);
-      setGameId(gameIdInput);
       sendMessage(`join ${gameIdInput}`);
+      
     }
   };
 
   // Function to handle piece movement
   const handleMakeMove = (fromX, fromY, toX, toY) => {
     makeMove(fromX, fromY, toX, toY, sendMessage);
-    if(gameStatus === "finished"){
-      setShowGameOverPopup(true)
 
-    }
   };
+
+    // Function to handle piece movement
+    const handleLeaveGame = () => {
+      sendMessage(`leave ${gameId} ${player}`);      
+    };
 
   function Header() {
     if (gameStatus === "playing") {
@@ -200,7 +205,12 @@ function App() {
       <div style={styles.card}>
         <h1 style={styles.title}>Checkers</h1>
 
-        {/* TAB SWITCHER */}
+      
+
+        {/* LOGIN FORM */}
+        {view === "login" && (
+          <>
+            {/* TAB SWITCHER */}
         <div style={{ textAlign: "center", marginBottom: "1rem" }}>
           <button style={styles.toggleBtn(view === "login")} onClick={() => setView("login")}>
             Login
@@ -209,10 +219,6 @@ function App() {
             Register
           </button>
         </div>
-
-        {/* LOGIN FORM */}
-        {view === "login" && (
-          <>
             <input
               style={styles.input}
               placeholder="Username"
@@ -235,6 +241,15 @@ function App() {
         {/* REGISTER FORM */}
         {view === "register" && (
           <>
+            {/* TAB SWITCHER */}
+        <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+          <button style={styles.toggleBtn(view === "login")} onClick={() => setView("login")}>
+            Login
+          </button>
+          <button style={styles.toggleBtn(view === "register")} onClick={() => setView("register")}>
+            Register
+          </button>
+        </div>
             <input
               style={styles.input}
               placeholder="Email"
@@ -261,7 +276,7 @@ function App() {
         )}
 
         {/* LOBBY */}
-        {view === "lobby" && (
+        {(lobbyView || view === "lobby") && (
           <>
             <h2 style={{ marginBottom: "1rem" }}>Welcome, {player}!</h2>
             <p style={{ textAlign: "center" }}>Wins: {wins} | Losses: {losses}</p>
@@ -308,7 +323,8 @@ function App() {
 
                 if (loginUsername && loginPassword) {
                   sendMessage(`login ${loginUsername} ${loginPassword}`);
-                }            
+                }     
+                handleLeaveGame()       
               }}
             >
               Return to Lobby

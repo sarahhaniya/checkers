@@ -5,6 +5,7 @@ const useGameState = () => {
   const [gameId, setGameId] = useState("");
   const [player1Id, setPlayer1Id] = useState("");
   const [player2Id, setPlayer2Id] = useState("");
+  const [lobbyView, setLobbyView] = useState(false);
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [board, setBoard] = useState(
@@ -28,7 +29,7 @@ const useGameState = () => {
   const [gameStatus, setGameStatus] = useState("waiting");
 
   const updateFromServer = useCallback((data) => {
-    console.log("[Frontend] Raw data received:", data);
+    // console.log("[Frontend] Raw data received:", data);
 
     try {
       if (!data.trim()) return;
@@ -42,11 +43,14 @@ const useGameState = () => {
           setPlayer(response.username);
           setWins(response.wins || 0);
           setLosses(response.losses || 0);
+          setLobbyView(true);
           break;
 
         case "game_created":
           setGameStatus("waiting");
           setCurrentPlayer("");
+          setLobbyView(false);
+
           setGameId(response.gameCode);
           setMessages((prev) => [
             ...prev,
@@ -55,9 +59,10 @@ const useGameState = () => {
           break;
 
         case "game_joined": {
-          const { gameInfo } = response;
+          const { code, gameInfo } = response;
           setPlayer1Id(gameInfo.player1Id);
           setPlayer2Id(gameInfo.player2Id);
+          setLobbyView(false);
 
           const turnUsername =
             gameInfo.currentTurn === "Player1"
@@ -72,7 +77,7 @@ const useGameState = () => {
               response.board
             );
           }
-
+          setGameId(code);
           setGameStatus("playing");
           setCurrentPlayer(turnUsername);
           setMessages((prev) => [
@@ -85,6 +90,7 @@ const useGameState = () => {
         case "game_update":
           setBoard(response.board);
           setCurrentPlayer(response.currentPlayer);
+
           if (response.winner) {
             setGameStatus("finished");
             setMessages((prev) => [
@@ -131,12 +137,27 @@ const useGameState = () => {
           ]);
           break;
 
+        case "game_abandoned":
+          setGameStatus("waiting");
+          setBoard(
+            Array(8)
+              .fill()
+              .map(() => Array(8).fill(""))
+          );
+          setLobbyView(true);
+          setGameId("");
+          setMessages((prev) => [...prev, `${response.message}`]);
+          break;
+
         case "error":
           setMessages((prev) => [...prev, `Error: ${response.message}`]);
           alert(`Error: ${response.message}`);
           // Optionally reset inputs
           if (response.message.includes("Invalid username")) {
             setPlayer(""); // Just to be safe
+          }
+          if (response.message.includes("Invalid or expired game code")) {
+            setLobbyView(true); // Just to be safe
           }
           break;
 
@@ -188,6 +209,8 @@ const useGameState = () => {
     player2Id,
     wins,
     losses,
+    setLobbyView,
+    lobbyView,
   };
 };
 
