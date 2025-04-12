@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 import useGameState from "./hooks/useGameState";
 import Board from "./components/Board"; // <-- Make sure this is the correct path
@@ -30,12 +30,15 @@ function App() {
     player1Id,
     player2Id,
     wins,
-    losses
+    losses,
+    setLobbyView,
+    lobbyView,
+
   } = useGameState();
 
   const [loginPassword, setLoginPassword] = useState("");
   const memoizedUpdateFromServer = useCallback(updateFromServer, [updateFromServer]);
-  const { sendMessage, status } = useWebSocket("http://localhost:8080", memoizedUpdateFromServer, player, loginPassword, gameId );
+  const { sendMessage, status } = useWebSocket("ws://localhost:8080", memoizedUpdateFromServer, player, loginPassword, gameId );
 
   const [view, setView] = useState("login");
   const [gameIdInput, setGameIdInput] = useState("");
@@ -65,6 +68,10 @@ function App() {
     if (regEmail && regUsername && regPassword) {
       sendMessage(`register ${regEmail} ${regUsername} ${regPassword}`);
     }
+   setRegEmail("")
+   setRegUsername("")
+   setRegPassword("")
+
   };
 
   const handleCreateGame = () => sendMessage("create");
@@ -72,15 +79,34 @@ function App() {
   const handleJoinGame = () => {
     if (gameIdInput) {
       console.log("[JOIN] Player:", player, "| Game ID:", gameIdInput);
-      setGameId(gameIdInput);
       sendMessage(`join ${gameIdInput}`);
+      
     }
   };
 
   // Function to handle piece movement
   const handleMakeMove = (fromX, fromY, toX, toY) => {
     makeMove(fromX, fromY, toX, toY, sendMessage);
+
   };
+
+    // Function to handle piece movement
+    const handleLeaveGame = () => {
+      sendMessage(`leave ${gameId} ${player}`);      
+    };
+
+  function Header() {
+    if (gameStatus === "playing") {
+      return(
+      <span style={{ fontWeight: "bold" }}>
+      Current turn: {currentPlayer === player ? "Your turn" : `${currentPlayer}'s turn`}
+    </span>
+      )
+     }
+    else if(gameStatus === "finished"){
+     return <span>Game completed</span>
+    }
+  }
 
   useEffect(() => {
     if (player && gameId) {
@@ -179,7 +205,12 @@ function App() {
       <div style={styles.card}>
         <h1 style={styles.title}>Checkers</h1>
 
-        {/* TAB SWITCHER */}
+      
+
+        {/* LOGIN FORM */}
+        {view === "login" && (
+          <>
+            {/* TAB SWITCHER */}
         <div style={{ textAlign: "center", marginBottom: "1rem" }}>
           <button style={styles.toggleBtn(view === "login")} onClick={() => setView("login")}>
             Login
@@ -188,10 +219,6 @@ function App() {
             Register
           </button>
         </div>
-
-        {/* LOGIN FORM */}
-        {view === "login" && (
-          <>
             <input
               style={styles.input}
               placeholder="Username"
@@ -214,6 +241,15 @@ function App() {
         {/* REGISTER FORM */}
         {view === "register" && (
           <>
+            {/* TAB SWITCHER */}
+        <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+          <button style={styles.toggleBtn(view === "login")} onClick={() => setView("login")}>
+            Login
+          </button>
+          <button style={styles.toggleBtn(view === "register")} onClick={() => setView("register")}>
+            Register
+          </button>
+        </div>
             <input
               style={styles.input}
               placeholder="Email"
@@ -240,7 +276,7 @@ function App() {
         )}
 
         {/* LOBBY */}
-        {view === "lobby" && (
+        {(lobbyView || view === "lobby") && (
           <>
             <h2 style={{ marginBottom: "1rem" }}>Welcome, {player}!</h2>
             <p style={{ textAlign: "center" }}>Wins: {wins} | Losses: {losses}</p>
@@ -265,13 +301,7 @@ function App() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2>Game Invite Code: {gameId}</h2>
               <div>
-                {gameStatus === "playing" ? (
-                  <span style={{ fontWeight: "bold" }}>
-                    Current turn: {currentPlayer === player ? "Your turn" : `${currentPlayer}'s turn`}
-                  </span>
-                ) : (
-                  <span>Game completed</span>
-                )}
+            <Header></Header>
               </div>
             </div>
             <Board
@@ -282,6 +312,8 @@ function App() {
               player={player}
               player1Id={player1Id}
               player2Id={player2Id}
+              isFlipped={player === player1Id} 
+
             />
             <button
               style={{ ...styles.button, backgroundColor: "#555" }}
@@ -291,7 +323,8 @@ function App() {
 
                 if (loginUsername && loginPassword) {
                   sendMessage(`login ${loginUsername} ${loginPassword}`);
-                }            
+                }     
+                handleLeaveGame()       
               }}
             >
               Return to Lobby

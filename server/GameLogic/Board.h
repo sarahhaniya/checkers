@@ -42,7 +42,8 @@ class Board
 		 * @param piece The Piece object that will be moved.
 		 */
 		void applyMoveToBoard(const move_ptr_t move, Piece* piece);
-    
+    	void setupInitialBoard();
+
     	/**
 		 * Get's the Piece object at this location. (doesn't error check)
 		 * @param x The x position of the Piece
@@ -107,7 +108,6 @@ class Board
 		 * @param piece The Piece to put in this space, but can be null to make the space empty
 		 */
 		void setValueAt(int position, Piece* piece);
-		
 		/**
 		 * Converts a single position value to x and y coordinates.
 		 * @param position The single position value, zero indexed at top left.

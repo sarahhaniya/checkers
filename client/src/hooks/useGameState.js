@@ -5,20 +5,20 @@ const useGameState = () => {
   const [gameId, setGameId] = useState("");
   const [player1Id, setPlayer1Id] = useState("");
   const [player2Id, setPlayer2Id] = useState("");
+  const [lobbyView, setLobbyView] = useState(false);
   const [wins, setWins] = useState(0);
   const [losses, setLosses] = useState(0);
   const [board, setBoard] = useState(
-
     Array(8)
       .fill()
       .map(() => Array(8).fill(""))
   );
 
   const formatBoard = (serverBoard) => {
-    return serverBoard.map(row =>
-      row.map(cell => {
+    return serverBoard.map((row) =>
+      row.map((cell) => {
         if (!cell) return null;
-        const pieceChar = cell.isWhite ? 'r' : 'b';
+        const pieceChar = cell.isWhite ? "r" : "b";
         return cell.isKing ? pieceChar.toUpperCase() : pieceChar;
       })
     );
@@ -29,8 +29,7 @@ const useGameState = () => {
   const [gameStatus, setGameStatus] = useState("waiting");
 
   const updateFromServer = useCallback((data) => {
-
-    console.log("[Frontend] Raw data received:", data);
+    // console.log("[Frontend] Raw data received:", data);
 
     try {
       if (!data.trim()) return;
@@ -43,12 +42,15 @@ const useGameState = () => {
           setMessages((prev) => [...prev, `Logged in as ${response.username}`]);
           setPlayer(response.username);
           setWins(response.wins || 0);
-          setLosses(response.losses || 0);        
+          setLosses(response.losses || 0);
+          setLobbyView(true);
           break;
 
         case "game_created":
           setGameStatus("waiting");
           setCurrentPlayer("");
+          setLobbyView(false);
+
           setGameId(response.gameCode);
           setMessages((prev) => [
             ...prev,
@@ -57,19 +59,25 @@ const useGameState = () => {
           break;
 
         case "game_joined": {
-          const { gameInfo } = response;
+          const { code, gameInfo } = response;
           setPlayer1Id(gameInfo.player1Id);
           setPlayer2Id(gameInfo.player2Id);
+          setLobbyView(false);
 
           const turnUsername =
-            gameInfo.currentTurn === "Player1" ? gameInfo.player1Id : gameInfo.player2Id;
+            gameInfo.currentTurn === "Player1"
+              ? gameInfo.player1Id
+              : gameInfo.player2Id;
 
           if (Array.isArray(response.board)) {
             setBoard(formatBoard(response.board));
           } else {
-            console.warn("Invalid board format received in MoveResult:", response.board);
+            console.warn(
+              "Invalid board format received in MoveResult:",
+              response.board
+            );
           }
-
+          setGameId(code);
           setGameStatus("playing");
           setCurrentPlayer(turnUsername);
           setMessages((prev) => [
@@ -82,6 +90,7 @@ const useGameState = () => {
         case "game_update":
           setBoard(response.board);
           setCurrentPlayer(response.currentPlayer);
+
           if (response.winner) {
             setGameStatus("finished");
             setMessages((prev) => [
@@ -99,37 +108,61 @@ const useGameState = () => {
           } else if (boardPayload && Array.isArray(boardPayload.board)) {
             setBoard(formatBoard(boardPayload.board));
           } else {
-            console.warn("Unexpected board structure in MoveResult:", boardPayload);
+            console.warn(
+              "Unexpected board structure in MoveResult:",
+              boardPayload
+            );
           }
 
           const gameInfo = boardPayload?.gameInfo;
           if (gameInfo) {
             setPlayer1Id(gameInfo.player1Id);
             setPlayer2Id(gameInfo.player2Id);
-            const turnUsername = gameInfo.currentTurn === "Player1" ? gameInfo.player1Id : gameInfo.player2Id;
+            const turnUsername =
+              gameInfo.currentTurn === "Player1"
+                ? gameInfo.player1Id
+                : gameInfo.player2Id;
             setCurrentPlayer(turnUsername);
           }
 
           setMessages((prev) => [
             ...prev,
             response.success
-              ? `Move successful: (${response.from.join(",")}) → (${response.to.join(",")})`
-              : `Invalid move attempt from (${response.from.join(",")}) to (${response.to.join(",")})`,
+              ? `Move successful: (${response.from.join(
+                  ","
+                )}) → (${response.to.join(",")})`
+              : `Invalid move attempt from (${response.from.join(
+                  ","
+                )}) to (${response.to.join(",")})`,
           ]);
+          break;
+
+        case "game_abandoned":
+          setGameStatus("waiting");
+          setBoard(
+            Array(8)
+              .fill()
+              .map(() => Array(8).fill(""))
+          );
+          setLobbyView(true);
+          setGameId("");
+          setMessages((prev) => [...prev, `${response.message}`]);
           break;
 
         case "error":
           setMessages((prev) => [...prev, `Error: ${response.message}`]);
           alert(`Error: ${response.message}`);
-           // Optionally reset inputs
+          // Optionally reset inputs
           if (response.message.includes("Invalid username")) {
-          setPlayer(""); // Just to be safe
-  }
+            setPlayer(""); // Just to be safe
+          }
+          if (response.message.includes("Invalid or expired game code")) {
+            setLobbyView(true); // Just to be safe
+          }
           break;
 
         default:
-
-        if (data.includes("WINS!")) {
+          if (data.includes("WINS!")) {
             setGameStatus("finished");
 
             const winnerMatch = data.match(/(WHITE|BLACK) WINS!/);
@@ -156,13 +189,10 @@ const useGameState = () => {
     }
   }, []);
 
-  const makeMove = useCallback(
-    (fromX, fromY, toX, toY, sendMessage) => {
-      const moveCommand = `move ${fromX} ${fromY} ${toX} ${toY}`;
-      sendMessage(moveCommand);
-    },
-    []
-  );
+  const makeMove = useCallback((fromX, fromY, toX, toY, sendMessage) => {
+    const moveCommand = `move ${fromX} ${fromY} ${toX} ${toY}`;
+    sendMessage(moveCommand);
+  }, []);
 
   return {
     player,
@@ -179,6 +209,8 @@ const useGameState = () => {
     player2Id,
     wins,
     losses,
+    setLobbyView,
+    lobbyView,
   };
 };
 

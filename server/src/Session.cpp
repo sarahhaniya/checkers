@@ -18,7 +18,14 @@ GameSession::GameSession(std::string inviteCode, int id, const std::string &p1Id
     std::cout << "Game session " << id << " created with player: " << p1Id << std::endl;
 }
 
-
+void GameSession::initializeBoard() {
+    gameBoard.setupInitialBoard();  // new function you wrote in Board.cpp
+}
+void GameSession::resetBoard() {
+    initializeBoard();        
+    isPlayer1Turn = true;      // Player1 starts
+    winner = -1;               // Clear winner
+}
 
 int GameSession::mutexOperationId = 0;
 
@@ -325,8 +332,38 @@ bool GameSession::makeMove(const std::string &playerId, int fromX, int fromY, in
         return false;
     }
 }
+void GameSession::markGameAsAbandonedBy(const std::string& leaverId) {
+    std::lock_guard<std::mutex> lock(gameMutex);
+    std::string message = "Player " + leaverId + " has left the game. Game is now over.";
 
-void GameSession::broadcastGameState()
+    std::stringstream ss;
+    ss << "{";
+    ss << "\"type\":\"game_abandoned\",";
+    ss << "\"message\":\"" << message << "\"}";
+
+    std::cout << "[MARK ABANDONED] Sending message: " << message << std::endl;
+
+    gameStarted = false;  // mark session inactive
+    winner = -1;
+
+    // Notify all sockets (TCP + WebSocket)
+    for (socket_t socket : clientSockets) {
+        SocketWrapper::sendData(socket, message.c_str(), message.length());
+    }
+
+    for (auto& conn : GameSession::wsConnections) {
+        try {
+            conn.second->send(conn.first, ss.str(), websocketpp::frame::opcode::text);
+        } catch (...) {
+            // ignore
+        }
+    }
+
+    std::cout << "[GameSession] Game ended because player " << leaverId << " left.\n";
+}
+
+
+void GameSession::broadcastGameState(const std::string &code)
 {
     logMutexAcquire("broadcastGameState");
     std::lock_guard<std::mutex> lock(gameMutex);
@@ -348,13 +385,14 @@ void GameSession::broadcastGameState()
     }
 
               // Create a JSON representation of the game state
-              std::string boardJson = getBoardStateJson();
+              std::string boardJson = getJoinBoardStateJson();
            
+              std::string response = "{ \"code\": \"" + code + "\", " + boardJson + " }";
               
               // Send to all WebSocket connections
               for (auto& conn : GameSession::wsConnections) {
                   try {
-                      conn.second->send(conn.first, boardJson, websocketpp::frame::opcode::text);
+                      conn.second->send(conn.first, response, websocketpp::frame::opcode::text);
                   } catch (const websocketpp::exception& e) {
                       // Handle errors
                   }
@@ -512,7 +550,41 @@ std::string GameSession::getBoardStateJson() const {
     return ss.str();
 }
 
+std::string GameSession::getJoinBoardStateJson() const {
+    std::stringstream ss;
+    ss << "\"type\":\"game_joined\",";
+    ss << "\"gameId\":\"" << sessionId << "\",";
+    
+    ss << "\"gameInfo\":{";
+    ss << "\"player1Id\":\"" << player1Id << "\",";
+    ss << "\"player2Id\":\"" << player2Id << "\",";
+    ss << "\"currentTurn\":\"" << (isPlayer1Turn ? "Player1" : "Player2") << "\"";
+    ss << "},";
 
+    ss << "\"board\":[";
+    if (gameStarted) {
+        for (int y = 0; y < Board::SIZE; ++y) {
+            ss << "[";
+            for (int x = 0; x < Board::SIZE; ++x) {
+                Piece* piece = gameBoard.getValueAt(x, y);
+                if (piece) {
+                    ss << "{";
+                    ss << "\"isWhite\":" << (piece->isWhite ? "true" : "false") << ",";
+                    ss << "\"isKing\":" << (piece->getString().find("K") != std::string::npos ? "true" : "false");
+                    ss << "}";
+                } else {
+                    ss << "null";
+                }
+                if (x < Board::SIZE - 1) ss << ",";
+            }
+            ss << "]";
+            if (y < Board::SIZE - 1) ss << ",";
+        }
+    }
+    ss << "]";
+
+    return ss.str();
+}
 
 void GameSession::addClientSocket(socket_t socket)
 {
@@ -547,19 +619,20 @@ bool GameSession::checkForWinner()
     if (whiteCount == 0 || blackCount == 0)
     {
         std::string message;
-        if (whiteCount == 0)
+        if (whiteCount == 0){
             message = "BLACK WINS! Player " + player2Id + " is victorious!\n";
             if (db) {
                 db->incrementWins(player2Id);
                 db->incrementLosses(player1Id);
-            }        
-            else {
+            }   
+        }     
+        else {
             message = "WHITE WINS! Player " + player1Id + " is victorious!\n";
             if (db) {
                 db->incrementWins(player1Id);
                 db->incrementLosses(player2Id);
             }        
-            }
+        }
         std::cout << message;
 
         // Broadcast the win message to all clients
@@ -590,6 +663,4 @@ int GameSession::getCurrentTurn() {
     return isPlayer1Turn ? 0 : 1;
 }
 
-// std::string GameSession::getCurrentTurnStr() const {
-//     return isPlayer1Turn ? "Player1" : "Player2";
-// }
+
